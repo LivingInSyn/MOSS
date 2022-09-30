@@ -1,0 +1,16 @@
+skip_repos: #an array of repos to skip
+  - some_org/some_repo
+ignore_secret_pattern: 
+# an array of secret _type_ to ignore
+# these are regexes
+  - '^.*key_id:.*'
+ignore_secrets:
+# this is an array of secrets to ignore
+# example would be a sample secret used
+# in documentation
+  - '0xDEADBEEF'
+repo_ignore:
+# this is a dict of arrays that let you specify files
+# to ignore in a repository with a regular expression
+  some_org/some_repo:
+    - 'docs/.*'
