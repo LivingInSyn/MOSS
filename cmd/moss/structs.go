@@ -7,10 +7,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type gitleaksresults struct {
-	Results []GitleaksResult
-}
-
 type GitleaksResult struct {
 	Description string        `json:"Description"`
 	StartLine   int           `json:"StartLine"`
