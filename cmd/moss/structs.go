@@ -7,6 +7,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type gitleaksresults struct {
+	Results []GitleaksResult
+}
+
 type GitleaksResult struct {
 	Description string        `json:"Description"`
 	StartLine   int           `json:"StartLine"`
@@ -29,6 +33,7 @@ type GitleaksResult struct {
 type GitleaksRepoResult struct {
 	Repository string
 	URL        string
+	Err        error
 	IsPrivate  bool
 	Results    []GitleaksResult
 }

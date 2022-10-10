@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/google/go-github/v47/github"
@@ -21,14 +23,63 @@ func check_gitleaks_conf(gitleaks_path string) error {
 	return nil
 }
 
-func scan_repo(repo, pat string) GitleaksRepoResult {
+func scan_repo(repo *github.Repository, pat, gl_conf_path string, results chan GitleaksRepoResult) {
+	// build a result object
 	result := GitleaksRepoResult{
-		Repository: repo,
-		URL:        "",    // TODO, fix this using github repo sdk html_url
-		IsPrivate:  false, // TODO, fix this using github repo sdk
+		Repository: *repo.Name,
+		URL:        *repo.URL,
+		IsPrivate:  *repo.Private,
+	}
+	// make temp dir
+	dir, err := os.MkdirTemp(os.TempDir(), "moss_")
+	if err != nil {
+		log.Error().Err(err).Str("repo", *repo.Name).Msg("failed to create temp dir to scan repo")
+		result.Err = err
+		results <- result
+		return
+	}
+	defer os.RemoveAll(dir)
+	// clone into it
+	cloneargs := []string{"clone", *repo.CloneURL, dir}
+	cmd := exec.Command("git", cloneargs...)
+	if err := cmd.Run(); err != nil {
+		log.Error().Err(err).Str("repo", *repo.Name).Msg("failed to clone repo")
+		result.Err = err
+		results <- result
+		return
 	}
 	// run gitleaks
-	return result
+	outputpath := fmt.Sprintf("%s/__gitleaks.json", dir)
+	outputarg := fmt.Sprintf("-r=%s", outputpath)
+	confpath := fmt.Sprintf("-c=%s", gl_conf_path)
+	gitleaks_args := []string{"detect", "-f=json", "--exit-code=0", outputarg, confpath}
+	gl_cmd := exec.Command("gitleaks", gitleaks_args...)
+	if err := gl_cmd.Run(); err != nil {
+		log.Error().Err(err).Str("repo", *repo.Name).Msg("error running gitleaks on the repo")
+		result.Err = err
+		results <- result
+		return
+	}
+	// load the result into a GitleaksResult
+	resultfile, err := os.ReadFile(outputpath)
+	if err != nil {
+		log.Error().Err(err).Str("repo", *repo.Name).Msg("error opening results file")
+		result.Err = err
+		results <- result
+		return
+	}
+	jsonResults := make([]GitleaksResult, 0)
+	err = json.Unmarshal(resultfile, &jsonResults)
+	if err != nil {
+		log.Error().Err(err).Str("repo", *repo.Name).Msg("error unmarshaling gitleaks results")
+		result.Err = err
+		results <- result
+		return
+	}
+	//success: return
+	result.Results = jsonResults
+	result.Err = nil
+	results <- result
 }
 
 func get_org_repos(orgname, pat string, daysago int) ([]*github.Repository, error) {
@@ -44,7 +95,7 @@ func get_org_repos(orgname, pat string, daysago int) ([]*github.Repository, erro
 	page := 0
 	for {
 		opt := &github.RepositoryListByOrgOptions{Type: "all", Sort: "pushed", Direction: "desc", ListOptions: github.ListOptions{Page: page}}
-		repos, _, err := client.Repositories.ListByOrg(context.Background(), "github", opt)
+		repos, _, err := client.Repositories.ListByOrg(context.Background(), orgname, opt)
 		if err != nil {
 			log.Error().Err(err).Str("org", orgname).Msg("Error getting repositories from Github")
 			return nil, err
@@ -73,14 +124,25 @@ func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	log.Info().Msg("logging setup")
 	// load the config file
+	foo := os.Environ()
+	_ = foo
+	confdir := os.Getenv("MOSS_CONFDIR")
+	if confdir == "" {
+		confdir = "./configs/conf.yml"
+	}
 	var conf Conf
-	conf.getConfig("./configs/conf.yml")
+	conf.getConfig(confdir)
 	// check the gitleaks.toml file exists and isn't empty
-	check_gitleaks_conf("./configs/gitleaks.toml")
+	gitleaks_toml_path := os.Getenv("MOSS_GITLEAKSCONF")
+	if confdir == "" {
+		confdir = "./configs/gitleaks.toml"
+	}
+	check_gitleaks_conf(gitleaks_toml_path)
 	// check the PAT exists for each org
 	pats := make(map[string]string, 0)
 	for _, org := range conf.GithubConfig.OrgsToScan {
-		pat := os.Getenv(fmt.Sprintf("PAT_%s", org))
+		patenv := fmt.Sprintf("PAT_%s", org)
+		pat := os.Getenv(patenv)
 		if pat == "" {
 			log.Error().Str("org", org).Msg("PAT for org doesn't exist. Skipping it")
 			continue
@@ -97,5 +159,11 @@ func main() {
 		}
 		all_repos = append(all_repos, repos...)
 	}
-	// and queue up the repos
+	// create the channel and kick off the scans
+	results := make(chan GitleaksRepoResult)
+	for _, repo := range all_repos {
+		orgname := repo.GetOrganization().Name
+		go scan_repo(repo, *orgname, gitleaks_toml_path, results)
+	}
+	// TODO: collect the results
 }

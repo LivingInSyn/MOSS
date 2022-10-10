@@ -1,7 +1,8 @@
 {
     "yaml.schemas": {
         ".empty_schema.json": [
-            "configs/*.yml"
+            "configs/*.yml",
+            "conf_test.yml"
         ],
         "file:///Users/jeremy.mill/Documents/personal/MOSS/.empty_schema.json": "file:///Users/jeremy.mill/Documents/personal/MOSS/configs/conf.yml"
     }
