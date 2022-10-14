@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v47/github"
@@ -23,12 +24,13 @@ func check_gitleaks_conf(gitleaks_path string) error {
 	return nil
 }
 
-func scan_repo(repo *github.Repository, pat, gl_conf_path string, results chan GitleaksRepoResult) {
+func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, results chan GitleaksRepoResult) {
 	// build a result object
 	result := GitleaksRepoResult{
 		Repository: *repo.Name,
 		URL:        *repo.URL,
 		IsPrivate:  *repo.Private,
+		Org:        orgname,
 	}
 	// make temp dir
 	dir, err := os.MkdirTemp(os.TempDir(), "moss_")
@@ -38,6 +40,7 @@ func scan_repo(repo *github.Repository, pat, gl_conf_path string, results chan G
 		results <- result
 		return
 	}
+	log.Debug().Str("repo", *repo.Name).Str("dir", dir).Msg("tempdir set")
 	defer os.RemoveAll(dir)
 	// clone into it
 	cloneargs := []string{"clone", *repo.CloneURL, dir}
@@ -123,6 +126,12 @@ func main() {
 	// setup logging
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	log.Info().Msg("logging setup")
+	if os.Getenv("MOSS_DEBUG") != "" {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		log.Debug().Msg("loglevel debug")
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	}
 	// load the config file
 	foo := os.Environ()
 	_ = foo
@@ -162,8 +171,28 @@ func main() {
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult)
 	for _, repo := range all_repos {
-		orgname := repo.GetOrganization().Name
-		go scan_repo(repo, *orgname, gitleaks_toml_path, results)
+		reponame := repo.GetFullName()
+		orgname := strings.Split(reponame, "/")[0]
+		pat := pats[orgname]
+		go scan_repo(repo, pat, orgname, gitleaks_toml_path, results)
 	}
-	// TODO: collect the results
+	// collect the results
+	collected := 0
+	final_results := make([]GitleaksRepoResult, 0)
+	for {
+		repoResult := <-results
+		final_results = append(final_results, repoResult)
+		collected = collected + 1
+		if collected >= len(all_repos) {
+			break
+		}
+	}
+	// format and output the results nicely
+	for _, rr := range final_results {
+		if rr.Err != nil {
+			fmt.Printf("repo %s finished with an error\n", rr.Repository)
+		} else {
+			fmt.Printf("repo %s finished with no errors\n", rr.Repository)
+		}
+	}
 }

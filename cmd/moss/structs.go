@@ -28,6 +28,7 @@ type GitleaksResult struct {
 
 type GitleaksRepoResult struct {
 	Repository string
+	Org        string
 	URL        string
 	Err        error
 	IsPrivate  bool

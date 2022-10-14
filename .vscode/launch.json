@@ -13,7 +13,8 @@
             "env": {
                 "PAT_puppetlabs": "${env:GH_TOKEN}",
                 "MOSS_CONFDIR": "/Users/jeremy.mill/Documents/personal/MOSS/conf_test.yml",
-                "MOSS_GITLEAKSCONF": "/Users/jeremy.mill/Documents/personal/MOSS/configs/gitleaks.toml"
+                "MOSS_GITLEAKSCONF": "/Users/jeremy.mill/Documents/personal/MOSS/configs/gitleaks.toml",
+                "MOSS_DEBUG": "true"
             }
         }
     ]
