@@ -17,7 +17,7 @@ type GitleaksResult struct {
 	Secret      string        `json:"Secret"`
 	File        string        `json:"File"`
 	Commit      string        `json:"Commit"`
-	Entropy     int           `json:"Entropy"`
+	Entropy     float32       `json:"Entropy"`
 	Author      string        `json:"Author"`
 	Email       string        `json:"Email"`
 	Date        string        `json:"Date"`
@@ -41,10 +41,14 @@ type Conf struct {
 	IgnoreSecretPatterns []string            `yaml:"ignore_secret_pattern"`
 	IgnoreSecrets        []string            `yaml:"ignore_secrets"`
 	ReposToIgnore        map[string][]string `yaml:"repo_ignore"`
+	Output               ConfOutput          `yaml:"output"`
 }
 type ConfGithubConfig struct {
 	OrgsToScan []string `yaml:"orgs_to_scan"`
 	DaysToScan int      `yaml:"days_to_scan"`
+}
+type ConfOutput struct {
+	Format string `yaml:"format"`
 }
 
 func (c *Conf) getConfig(confPath string) (*Conf, error) {

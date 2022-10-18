@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -41,9 +42,11 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 		return
 	}
 	log.Debug().Str("repo", *repo.Name).Str("dir", dir).Msg("tempdir set")
-	defer os.RemoveAll(dir)
+	//defer os.RemoveAll(dir)
 	// clone into it
-	cloneargs := []string{"clone", *repo.CloneURL, dir}
+	cloneUrl := *repo.CloneURL
+	cloneUrl = strings.Replace(cloneUrl, "https://", fmt.Sprintf("https://%s@", pat), 1)
+	cloneargs := []string{"clone", cloneUrl, dir}
 	cmd := exec.Command("git", cloneargs...)
 	if err := cmd.Run(); err != nil {
 		log.Error().Err(err).Str("repo", *repo.Name).Msg("failed to clone repo")
@@ -55,14 +58,27 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 	outputpath := fmt.Sprintf("%s/__gitleaks.json", dir)
 	outputarg := fmt.Sprintf("-r=%s", outputpath)
 	confpath := fmt.Sprintf("-c=%s", gl_conf_path)
-	gitleaks_args := []string{"detect", "-f=json", "--exit-code=0", outputarg, confpath}
+	// not exactly sure why gitleaks doesn't detect that
+	// it IS a git repo, but we can still detect secrets
+	gitleaks_args := []string{"detect", "-v", "--no-git", "-f=json", "--exit-code=0", outputarg, confpath, dir}
+	// TEMP
+	var outb, errb bytes.Buffer
 	gl_cmd := exec.Command("gitleaks", gitleaks_args...)
+	gl_cmd.Stdout = &outb
+	gl_cmd.Stderr = &errb
+	//fmt.Println(strings.Join(gl_cmd.Args, " "))
 	if err := gl_cmd.Run(); err != nil {
 		log.Error().Err(err).Str("repo", *repo.Name).Msg("error running gitleaks on the repo")
 		result.Err = err
 		results <- result
 		return
 	}
+
+	// code useful for debugging, but not for leaving compiled
+	// fmt.Println(outb.String())
+	// fmt.Println(errb.String())
+	// log.Debug().Str("stdout", outb.String()).Str("stderr", errb.String()).Msg("output from gitleaks")
+
 	// load the result into a GitleaksResult
 	resultfile, err := os.ReadFile(outputpath)
 	if err != nil {
@@ -143,8 +159,9 @@ func main() {
 	conf.getConfig(confdir)
 	// check the gitleaks.toml file exists and isn't empty
 	gitleaks_toml_path := os.Getenv("MOSS_GITLEAKSCONF")
-	if confdir == "" {
-		confdir = "./configs/gitleaks.toml"
+	if gitleaks_toml_path == "" {
+		log.Debug().Msg("gitleaks toml path was empty, using default")
+		gitleaks_toml_path = "./configs/gitleaks.toml"
 	}
 	check_gitleaks_conf(gitleaks_toml_path)
 	// check the PAT exists for each org
@@ -188,11 +205,17 @@ func main() {
 		}
 	}
 	// format and output the results nicely
-	for _, rr := range final_results {
-		if rr.Err != nil {
-			fmt.Printf("repo %s finished with an error\n", rr.Repository)
-		} else {
-			fmt.Printf("repo %s finished with no errors\n", rr.Repository)
-		}
+	if conf.Output.Format == "json" {
+		output := json_output(final_results, conf.GithubConfig.OrgsToScan)
+		// todo: make this part of the conf
+		os.WriteFile("./output.json", []byte(output), 0644)
+		fmt.Println(output)
 	}
+	// for _, rr := range final_results {
+	// 	if rr.Err != nil {
+	// 		fmt.Printf("repo %s finished with an error\n", rr.Repository)
+	// 	} else {
+	// 		fmt.Printf("repo %s finished with no errors\n", rr.Repository)
+	// 	}
+	// }
 }
