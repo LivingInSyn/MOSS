@@ -29,7 +29,7 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 	// build a result object
 	result := GitleaksRepoResult{
 		Repository: *repo.Name,
-		URL:        *repo.URL,
+		URL:        *repo.HTMLURL,
 		IsPrivate:  *repo.Private,
 		Org:        orgname,
 	}
@@ -60,7 +60,8 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 	confpath := fmt.Sprintf("-c=%s", gl_conf_path)
 	// not exactly sure why gitleaks doesn't detect that
 	// it IS a git repo, but we can still detect secrets
-	gitleaks_args := []string{"detect", "-v", "--no-git", "-f=json", "--exit-code=0", outputarg, confpath, dir}
+	dirarg := fmt.Sprintf("-s=%s", dir)
+	gitleaks_args := []string{"detect", "-v", "-f=json", "--exit-code=0", outputarg, confpath, dirarg}
 	// TEMP
 	var outb, errb bytes.Buffer
 	gl_cmd := exec.Command("gitleaks", gitleaks_args...)
@@ -205,11 +206,19 @@ func main() {
 		}
 	}
 	// format and output the results nicely
-	if conf.Output.Format == "json" {
+	if strings.ToLower(conf.Output.Format) == "json" {
 		output := json_output(final_results, conf.GithubConfig.OrgsToScan)
 		// todo: make this part of the conf
 		os.WriteFile("./output.json", []byte(output), 0644)
 		fmt.Println(output)
+	} else if strings.ToLower(conf.Output.Format) == "html" {
+		err := html_output(final_results, conf.GithubConfig.OrgsToScan, "")
+		if err != nil {
+			log.Error().Err(err).Msg("Error creating html output")
+		}
+	} else if strings.ToLower(conf.Output.Format) == "markdown" {
+		mdown_out := markdown_output(final_results, conf.GithubConfig.OrgsToScan)
+		os.WriteFile("./output.md", []byte(mdown_out), 0644)
 	}
 	// for _, rr := range final_results {
 	// 	if rr.Err != nil {
