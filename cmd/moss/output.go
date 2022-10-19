@@ -38,17 +38,19 @@ func markdown_output(results []GitleaksRepoResult, orgs []string) string {
 		if len(results) > 0 {
 			// foreach result in results, put a row in the table
 			for _, repo_result := range results {
+				if len(repo_result.Results) == 0 {
+					log.Debug().Str("repo", repo_result.Repository).Msg("skipping due to no findings")
+					continue
+				}
 				// repo header
-				markdown_out = fmt.Sprintf("%s### %s\n", repo_result.Repository)
+				markdown_out = fmt.Sprintf("%s### %s\n", markdown_out, repo_result.Repository)
 				// start a table
 				markdown_out = fmt.Sprintf("%s|File Link|Type|Secret|Commit|\n|---------|----|------|------|\n", markdown_out)
 				// foreach finding, add a row
 				for _, finding := range repo_result.Results {
 					row := "|"
 					// file
-					file_url := fmt.Sprintf("%s/%s#L%d-L%d", repo_result.URL, finding.File, finding.StartLine, finding.EndLine)
-					file_link := fmt.Sprintf("[%s](%s)", finding.File, file_url)
-					row = fmt.Sprintf("%s%s|", row, file_link)
+					row = fmt.Sprintf("%s%s|", row, finding.File)
 					// type
 					row = fmt.Sprintf("%s%s|", row, finding.Description)
 					// secret

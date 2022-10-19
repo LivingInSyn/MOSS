@@ -102,7 +102,16 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 	results <- result
 }
 
-func get_org_repos(orgname, pat string, daysago int) ([]*github.Repository, error) {
+func skip_repo(repo *github.Repository, skipRepos []string) bool {
+	for _, s := range skipRepos {
+		if s == *repo.FullName {
+			return true
+		}
+	}
+	return false
+}
+
+func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*github.Repository, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: pat},
@@ -123,6 +132,11 @@ func get_org_repos(orgname, pat string, daysago int) ([]*github.Repository, erro
 		saw_older := false
 		for _, repo := range repos {
 			if *repo.Archived {
+				log.Debug().Str("repo", *repo.FullName).Msg("skipping repo because it's archived")
+				continue
+			}
+			if skip_repo(repo, skipRepos) {
+				log.Debug().Str("repo", *repo.FullName).Msg("skipping repo due to config")
 				continue
 			}
 			if repo.PushedAt.Time.Before(time_ago) {
@@ -179,7 +193,7 @@ func main() {
 	// foreach org, get the repos according to days_to_scan
 	all_repos := make([]*github.Repository, 0)
 	for org, pat := range pats {
-		repos, err := get_org_repos(org, pat, conf.GithubConfig.DaysToScan)
+		repos, err := get_org_repos(org, pat, conf.GithubConfig.DaysToScan, conf.SkipRepos)
 		if err != nil {
 			log.Error().Err(err).Str("org", org).Msg("Failed to get repos from org. Continuing")
 			continue
@@ -205,6 +219,10 @@ func main() {
 			break
 		}
 	}
+	// filter the results
+	for _, r := range final_results {
+		r.filterResults(conf)
+	}
 	// format and output the results nicely
 	if strings.ToLower(conf.Output.Format) == "json" {
 		output := json_output(final_results, conf.GithubConfig.OrgsToScan)
@@ -220,11 +238,4 @@ func main() {
 		mdown_out := markdown_output(final_results, conf.GithubConfig.OrgsToScan)
 		os.WriteFile("./output.md", []byte(mdown_out), 0644)
 	}
-	// for _, rr := range final_results {
-	// 	if rr.Err != nil {
-	// 		fmt.Printf("repo %s finished with an error\n", rr.Repository)
-	// 	} else {
-	// 		fmt.Printf("repo %s finished with no errors\n", rr.Repository)
-	// 	}
-	// }
 }

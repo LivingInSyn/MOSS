@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"regexp"
 
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
@@ -42,6 +43,7 @@ type Conf struct {
 	IgnoreSecrets        []string            `yaml:"ignore_secrets"`
 	ReposToIgnore        map[string][]string `yaml:"repo_ignore"`
 	Output               ConfOutput          `yaml:"output"`
+	r_ignore_map         map[string][]*regexp.Regexp
 }
 type ConfGithubConfig struct {
 	OrgsToScan []string `yaml:"orgs_to_scan"`
@@ -62,5 +64,20 @@ func (c *Conf) getConfig(confPath string) (*Conf, error) {
 		log.Error().Err(err).Msg("failed to unmarshal config file")
 		return &Conf{}, err
 	}
+	// build the regex map
+	r_ignore_map := make(map[string][]*regexp.Regexp)
+	for ri, expressions := range c.ReposToIgnore {
+		// init the slice
+		r_ignore_map[ri] = make([]*regexp.Regexp, 0)
+		for _, expr := range expressions {
+			re, err := regexp.Compile(expr)
+			if err != nil {
+				log.Warn().Err(err).Str("repo", ri).Str("expression", expr).Msg("failed to compile regex, skipping")
+				continue
+			}
+			r_ignore_map[ri] = append(r_ignore_map[ri], re)
+		}
+	}
+	c.r_ignore_map = r_ignore_map
 	return c, nil
 }
