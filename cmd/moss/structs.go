@@ -65,6 +65,10 @@ func (c *Conf) getConfig(confPath string) (*Conf, error) {
 		return &Conf{}, err
 	}
 	// build the regex map
+	c.buildIgnoreMap()
+	return c, nil
+}
+func (c *Conf) buildIgnoreMap() {
 	r_ignore_map := make(map[string][]*regexp.Regexp)
 	for ri, expressions := range c.ReposToIgnore {
 		// init the slice
@@ -79,5 +83,4 @@ func (c *Conf) getConfig(confPath string) (*Conf, error) {
 		}
 	}
 	c.r_ignore_map = r_ignore_map
-	return c, nil
 }

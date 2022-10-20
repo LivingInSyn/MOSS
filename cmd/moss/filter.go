@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 func (r *GitleaksRepoResult) filterResults(conf Conf) {
 	// filter out explicitly ignored secrets
 	no_ignored := make([]GitleaksResult, 0)
@@ -25,7 +27,8 @@ func (r *GitleaksRepoResult) filterResults(conf Conf) {
 	no_ignored = make([]GitleaksResult, 0)
 	for _, result := range r.Results {
 		ignored := false
-		for _, expr := range conf.r_ignore_map[r.Repository] {
+		full_name := fmt.Sprintf("%s/%s", r.Org, r.Repository)
+		for _, expr := range conf.r_ignore_map[full_name] {
 			if expr.Match([]byte(result.File)) {
 				ignored = true
 				break

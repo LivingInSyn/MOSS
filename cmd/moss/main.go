@@ -42,7 +42,7 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 		return
 	}
 	log.Debug().Str("repo", *repo.Name).Str("dir", dir).Msg("tempdir set")
-	//defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 	// clone into it
 	cloneUrl := *repo.CloneURL
 	cloneUrl = strings.Replace(cloneUrl, "https://", fmt.Sprintf("https://%s@", pat), 1)
@@ -68,12 +68,14 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 	gl_cmd.Stdout = &outb
 	gl_cmd.Stderr = &errb
 	//fmt.Println(strings.Join(gl_cmd.Args, " "))
+	log.Debug().Str("repo", *repo.FullName).Msg("starting gitleaks scan")
 	if err := gl_cmd.Run(); err != nil {
 		log.Error().Err(err).Str("repo", *repo.Name).Msg("error running gitleaks on the repo")
 		result.Err = err
 		results <- result
 		return
 	}
+	log.Debug().Str("repo", *repo.FullName).Msg("finished gitleaks scan")
 
 	// code useful for debugging, but not for leaving compiled
 	// fmt.Println(outb.String())
@@ -200,6 +202,7 @@ func main() {
 		}
 		all_repos = append(all_repos, repos...)
 	}
+
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult)
 	for _, repo := range all_repos {
