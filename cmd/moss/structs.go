@@ -41,6 +41,7 @@ type Conf struct {
 	SkipRepos            []string            `yaml:"skip_repos"`
 	IgnoreSecretPatterns []string            `yaml:"ignore_secret_pattern"`
 	IgnoreSecrets        []string            `yaml:"ignore_secrets"`
+	IgnoreCommits        []string            `yaml:"ignore_commits"`
 	ReposToIgnore        map[string][]string `yaml:"repo_ignore"`
 	Output               ConfOutput          `yaml:"output"`
 	r_ignore_map         map[string][]*regexp.Regexp

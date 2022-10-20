@@ -17,6 +17,9 @@ ignore_secrets:
 # example would be a sample secret used
 # in documentation
   - '0xDEADBEEF'
+ignore_commits:
+# this is an array of commits to ignore
+  - 'c0a4e7c1208fb49c28b2979fe68985ddac696a6e'
 repo_ignore:
 # this is a dict of arrays that let you specify files
 # to ignore in a repository with a regular expression

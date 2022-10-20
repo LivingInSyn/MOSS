@@ -40,4 +40,20 @@ func (r *GitleaksRepoResult) filterResults(conf Conf) {
 	}
 	r.Results = no_ignored
 
+	// filter out by commit
+	no_ignored = make([]GitleaksResult, 0)
+	for _, result := range r.Results {
+		ignored := false
+		for _, icommit := range conf.IgnoreCommits {
+			if icommit == result.Commit {
+				ignored = true
+				break
+			}
+		}
+		if !ignored {
+			no_ignored = append(no_ignored, result)
+		}
+	}
+	r.Results = no_ignored
+
 }
