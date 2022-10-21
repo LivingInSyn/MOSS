@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -133,6 +134,7 @@ func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*git
 		}
 		saw_older := false
 		for _, repo := range repos {
+
 			if *repo.Archived {
 				log.Debug().Str("repo", *repo.FullName).Msg("skipping repo because it's archived")
 				continue
@@ -204,7 +206,7 @@ func main() {
 	}
 
 	// create the channel and kick off the scans
-	results := make(chan GitleaksRepoResult)
+	results := make(chan GitleaksRepoResult, runtime.NumCPU())
 	for _, repo := range all_repos {
 		reponame := repo.GetFullName()
 		orgname := strings.Split(reponame, "/")[0]
@@ -216,15 +218,12 @@ func main() {
 	final_results := make([]GitleaksRepoResult, 0)
 	for {
 		repoResult := <-results
+		repoResult.filterResults(conf)
 		final_results = append(final_results, repoResult)
 		collected = collected + 1
 		if collected >= len(all_repos) {
 			break
 		}
-	}
-	// filter the results
-	for _, r := range final_results {
-		r.filterResults(conf)
 	}
 	// format and output the results nicely
 	if strings.ToLower(conf.Output.Format) == "json" {
