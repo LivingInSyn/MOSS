@@ -121,10 +121,12 @@ func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*git
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
+
 	//TEMP
 	// r, _, _ := client.Repositories.Get(context.Background(), "puppetlabs", "puppetlabs-docker")
 	// return []*github.Repository{r}, nil
 	//end temp
+
 	time_ago := time.Now().AddDate(0, 0, (-1 * daysago))
 	org_repos := make([]*github.Repository, 0)
 	page := 0

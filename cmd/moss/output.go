@@ -64,6 +64,7 @@ func markdown_output(results []GitleaksRepoResult, orgs []string) string {
 			// repo header
 			markdown_out = fmt.Sprintf("%s### %s\n", markdown_out, repo_result.Repository)
 			// start a table
+			markdown_out = fmt.Sprintf("%s<details>\n  <summary>Repository Details</summary>\n\n", markdown_out)
 			markdown_out = fmt.Sprintf("%s|File Link|Type|Secret|Commit|\n|---------|----|------|------|\n", markdown_out)
 			// foreach finding, add a row
 			for _, finding := range repo_result.Results {
@@ -86,7 +87,7 @@ func markdown_output(results []GitleaksRepoResult, orgs []string) string {
 				markdown_out = fmt.Sprintf("%s%s\n", markdown_out, row)
 			}
 			//add an additional newline to make the markdown nice
-			markdown_out = fmt.Sprintf("%s\n", markdown_out)
+			markdown_out = fmt.Sprintf("%s\n</details>\n\n", markdown_out)
 		}
 	}
 	return markdown_out
