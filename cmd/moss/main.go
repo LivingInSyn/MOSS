@@ -121,7 +121,10 @@ func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*git
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	//
+	//TEMP
+	// r, _, _ := client.Repositories.Get(context.Background(), "puppetlabs", "puppetlabs-docker")
+	// return []*github.Repository{r}, nil
+	//end temp
 	time_ago := time.Now().AddDate(0, 0, (-1 * daysago))
 	org_repos := make([]*github.Repository, 0)
 	page := 0
@@ -221,6 +224,7 @@ func main() {
 		repoResult.filterResults(conf)
 		final_results = append(final_results, repoResult)
 		collected = collected + 1
+		log.Debug().Float32("percent_done", float32(collected)/float32(len(all_repos))).Msg("percent done")
 		if collected >= len(all_repos) {
 			break
 		}
