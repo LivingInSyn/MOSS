@@ -232,11 +232,15 @@ func main() {
 		}
 	}
 	// format and output the results nicely
+	output_dir := os.Getenv("MOSS_OUTDIR")
+	if output_dir == "" {
+		output_dir = "/output"
+	}
 	if strings.ToLower(conf.Output.Format) == "json" {
 		output := json_output(final_results, conf.GithubConfig.OrgsToScan)
 		// todo: make this part of the conf
-		os.WriteFile("./output.json", []byte(output), 0644)
-		fmt.Println(output)
+		outpath := fmt.Sprintf("%s/output.json", output_dir)
+		os.WriteFile(outpath, []byte(output), 0644)
 	} else if strings.ToLower(conf.Output.Format) == "html" {
 		err := html_output(final_results, conf.GithubConfig.OrgsToScan, "")
 		if err != nil {
@@ -244,6 +248,7 @@ func main() {
 		}
 	} else if strings.ToLower(conf.Output.Format) == "markdown" {
 		mdown_out := markdown_output(final_results, conf.GithubConfig.OrgsToScan)
-		os.WriteFile("./output.md", []byte(mdown_out), 0644)
+		outpath := fmt.Sprintf("%s/output.md", output_dir)
+		os.WriteFile(outpath, []byte(mdown_out), 0644)
 	}
 }
