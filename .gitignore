@@ -17,3 +17,9 @@
 # ignore outputs
 output.json
 output.md
+
+# ignore local test file
+conf_test.yml
+
+# ignore vscode debug binary
+__debug_bin

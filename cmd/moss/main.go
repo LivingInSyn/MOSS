@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -199,15 +200,44 @@ func main() {
 		}
 		pats[org] = pat
 	}
+	if len(pats) == 0 {
+		log.Fatal().Msg("No GitHub PATs found, nothing to scan!")
+	}
 	// foreach org, get the repos according to days_to_scan
-	all_repos := make([]*github.Repository, 0)
+	all_repos := make(map[string]*github.Repository, 0)
 	for org, pat := range pats {
 		repos, err := get_org_repos(org, pat, conf.GithubConfig.DaysToScan, conf.SkipRepos)
 		if err != nil {
 			log.Error().Err(err).Str("org", org).Msg("Failed to get repos from org. Continuing")
 			continue
 		}
-		all_repos = append(all_repos, repos...)
+		for _, repo := range repos {
+			all_repos[*repo.HTMLURL] = repo
+		}
+	}
+	// add a useful debug feature here for large github orgs
+	repo_limit_s := os.Getenv("MOSS_DEBUG_LIMIT")
+	if repo_limit_s != "" {
+		repo_limit, err := strconv.Atoi(repo_limit_s)
+		if err != nil {
+			log.Error().Err(err).Str("MOSS_DEBUG_LIMIT", repo_limit_s).
+				Msg("failed to cast value for moss debug limit, setting to 10")
+			repo_limit = 10
+		}
+		limit_repos := make(map[string]*github.Repository, 0)
+		counter := 0
+		for _, repo := range all_repos {
+			if counter == repo_limit {
+				break
+			}
+			limit_repos[*repo.HTMLURL] = repo
+			counter = counter + 1
+		}
+		all_repos = limit_repos
+	}
+	// make sure we have repos to scan and blow up if we don't
+	if len(all_repos) == 0 {
+		log.Fatal().Msg("no repos found to scan!")
 	}
 
 	// create the channel and kick off the scans
