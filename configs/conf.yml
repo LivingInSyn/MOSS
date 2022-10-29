@@ -25,3 +25,6 @@ repo_ignore:
 # to ignore in a repository with a regular expression
   some_org/some_repo:
     - 'docs/.*'
+output:
+  # supported formats are markdown and json
+  format: markdown
