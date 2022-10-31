@@ -45,7 +45,10 @@ type Conf struct {
 	IgnoreCommits        []string            `yaml:"ignore_commits"`
 	ReposToIgnore        map[string][]string `yaml:"repo_ignore"`
 	Output               ConfOutput          `yaml:"output"`
-	r_ignore_map         map[string][]*regexp.Regexp
+	// r_ignore_map is the ignoring of paths in repos
+	r_ignore_map map[string][]*regexp.Regexp
+	// s_ignores is the slice of regular expressions for secrets to ignore
+	s_ignores []*regexp.Regexp
 }
 type ConfGithubConfig struct {
 	OrgsToScan []string `yaml:"orgs_to_scan"`
@@ -71,6 +74,7 @@ func (c *Conf) getConfig(confPath string) (*Conf, error) {
 	}
 	// build the regex map
 	c.buildIgnoreMap()
+	c.buildIgnoreMap()
 	return c, nil
 }
 func (c *Conf) buildIgnoreMap() {
@@ -88,4 +92,16 @@ func (c *Conf) buildIgnoreMap() {
 		}
 	}
 	c.r_ignore_map = r_ignore_map
+}
+func (c *Conf) buildSecretIgnores() {
+	ignore_patterns := make([]*regexp.Regexp, 0)
+	for _, expr := range c.IgnoreSecretPatterns {
+		re, err := regexp.Compile(expr)
+		if err != nil {
+			log.Warn().Err(err).Str("expr", expr).Msg("Ignore Secret Pattern is invalid. Continuing without it")
+			continue
+		}
+		ignore_patterns = append(ignore_patterns, re)
+	}
+	c.s_ignores = ignore_patterns
 }

@@ -20,7 +20,20 @@ func (r *GitleaksRepoResult) filterResults(conf Conf) {
 	r.Results = no_ignored
 
 	// filter out  by pattern
-	// TODO: implement
+	no_ignored = make([]GitleaksResult, 0)
+	for _, r := range r.Results {
+		ignored := false
+		for _, to_ignore := range conf.s_ignores {
+			if to_ignore.Match([]byte(r.Match)) {
+				ignored = true
+				break
+			}
+		}
+		if !ignored {
+			no_ignored = append(no_ignored, r)
+		}
+	}
+	r.Results = no_ignored
 
 	// filter out files for particular repos by regex
 	// now filter using those regexes

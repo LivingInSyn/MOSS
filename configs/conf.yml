@@ -16,7 +16,8 @@ github_config:
 skip_repos: #an array of repos to skip
   - some_org/some_repo
 ignore_secret_pattern: 
-# an array of secret _type_ to ignore
+# an array of secret **matches** to ignore, this is a different
+# string than the secret.
 # these are regexes
   - '^.*key_id:.*'
 ignore_secrets:
