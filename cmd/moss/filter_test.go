@@ -142,3 +142,90 @@ func TestFilterSuppressedCommit(t *testing.T) {
 	}
 
 }
+
+func TestFilterSecretPattern(t *testing.T) {
+	// setup the secret result
+	rr := GitleaksRepoResult{
+		Repository: "repo",
+		Org:        "org",
+		URL:        "https://github.com/org/repo",
+		Err:        nil,
+		IsPrivate:  true,
+		Results:    make([]GitleaksResult, 0),
+	}
+	r := GitleaksResult{
+		Description: "Generic API Key",
+		StartLine:   63,
+		EndLine:     64,
+		StartColumn: 16,
+		EndColumn:   1,
+		Match:       "key_id: DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF",
+		Secret:      "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF",
+		File:        "somefolder/README.md",
+		Commit:      "BEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEAD",
+		Entropy:     3.6257162,
+		Author:      "John Smit",
+		Email:       "john.smith@example.com",
+		Date:        "2021-07-02T18:44:24Z",
+		Message:     "(maint) Clarify gpg-preset-passphrase instructions.",
+		Tags:        make([]interface{}, 0),
+		RuleID:      "generic-api-key",
+	}
+	rr.Results = append(rr.Results, r)
+	// setup a conf
+	c := getConf()
+	// set the secret to ignore
+	c.IgnoreSecretPatterns = append(c.IgnoreSecretPatterns, "^.*key_id:.*$")
+	c.buildIgnoreMap()
+	c.buildSecretIgnores()
+	// run the filter and make sure there are 0 results now
+	rr.filterResults(c)
+	if len(rr.Results) > 0 {
+		t.Errorf("secret wasn't filtered out!")
+	}
+}
+func TestFilterSecretPatternNull(t *testing.T) {
+	// setup the secret result
+	rr := GitleaksRepoResult{
+		Repository: "repo",
+		Org:        "org",
+		URL:        "https://github.com/org/repo",
+		Err:        nil,
+		IsPrivate:  true,
+		Results:    make([]GitleaksResult, 0),
+	}
+	r := GitleaksResult{
+		Description: "Generic API Key",
+		StartLine:   63,
+		EndLine:     64,
+		StartColumn: 16,
+		EndColumn:   1,
+		Match:       "key_id: DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF",
+		Secret:      "DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF",
+		File:        "somefolder/README.md",
+		Commit:      "BEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEAD",
+		Entropy:     3.6257162,
+		Author:      "John Smit",
+		Email:       "john.smith@example.com",
+		Date:        "2021-07-02T18:44:24Z",
+		Message:     "(maint) Clarify gpg-preset-passphrase instructions.",
+		Tags:        make([]interface{}, 0),
+		RuleID:      "generic-api-key",
+	}
+	rr.Results = append(rr.Results, r)
+	// setup a conf
+	c := getConf()
+
+	// Intentionally _don't_ ignore key_id to make sure we GET a secret
+	// basically making sure we don't somehow exclude everything
+	//c.IgnoreSecretPatterns = append(c.IgnoreSecretPatterns, "^.*key_id:.*$")
+
+	c.buildIgnoreMap()
+	c.buildSecretIgnores()
+	// run the filter and make sure there are 0 results now
+	rr.filterResults(c)
+	if len(rr.Results) == 0 {
+		t.Errorf("oh no, we filtered _all the secrets__")
+	}
+
+}

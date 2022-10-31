@@ -27,7 +27,7 @@ func check_gitleaks_conf(gitleaks_path string) error {
 	return nil
 }
 
-func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, results chan GitleaksRepoResult) {
+func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, additional_args []string, results chan GitleaksRepoResult) {
 	// build a result object
 	result := GitleaksRepoResult{
 		Repository: *repo.Name,
@@ -64,6 +64,7 @@ func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, resul
 	// it IS a git repo, but we can still detect secrets
 	dirarg := fmt.Sprintf("-s=%s", dir)
 	gitleaks_args := []string{"detect", "-v", "-f=json", "--exit-code=0", outputarg, confpath, dirarg}
+	gitleaks_args = append(gitleaks_args, additional_args...)
 	// TEMP
 	var outb, errb bytes.Buffer
 	gl_cmd := exec.Command("gitleaks", gitleaks_args...)
@@ -246,7 +247,7 @@ func main() {
 		reponame := repo.GetFullName()
 		orgname := strings.Split(reponame, "/")[0]
 		pat := pats[orgname]
-		go scan_repo(repo, pat, orgname, gitleaks_toml_path, results)
+		go scan_repo(repo, pat, orgname, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results)
 	}
 	// collect the results
 	collected := 0

@@ -38,17 +38,24 @@ type GitleaksRepoResult struct {
 
 type Conf struct {
 	GithubConfig         ConfGithubConfig    `yaml:"github_config"`
+	GitLeaksConfig       GitLeaksConfig      `yaml:"gitleaks_config"`
 	SkipRepos            []string            `yaml:"skip_repos"`
 	IgnoreSecretPatterns []string            `yaml:"ignore_secret_pattern"`
 	IgnoreSecrets        []string            `yaml:"ignore_secrets"`
 	IgnoreCommits        []string            `yaml:"ignore_commits"`
 	ReposToIgnore        map[string][]string `yaml:"repo_ignore"`
 	Output               ConfOutput          `yaml:"output"`
-	r_ignore_map         map[string][]*regexp.Regexp
+	// r_ignore_map is the ignoring of paths in repos
+	r_ignore_map map[string][]*regexp.Regexp
+	// s_ignores is the slice of regular expressions for secrets to ignore
+	s_ignores []*regexp.Regexp
 }
 type ConfGithubConfig struct {
 	OrgsToScan []string `yaml:"orgs_to_scan"`
 	DaysToScan int      `yaml:"days_to_scan"`
+}
+type GitLeaksConfig struct {
+	AdditionalArgs []string `yaml:"additional_args"`
 }
 type ConfOutput struct {
 	Format string `yaml:"format"`
@@ -57,15 +64,16 @@ type ConfOutput struct {
 func (c *Conf) getConfig(confPath string) (*Conf, error) {
 	yamlFile, err := os.ReadFile(confPath)
 	if err != nil {
-		log.Error().Err(err).Str("confPath", confPath).Msg("Failed to read config file")
+		log.Fatal().Err(err).Str("confPath", confPath).Msg("Failed to read config file")
 		return &Conf{}, err
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to unmarshal config file")
+		log.Fatal().Err(err).Msg("failed to unmarshal config file")
 		return &Conf{}, err
 	}
 	// build the regex map
+	c.buildIgnoreMap()
 	c.buildIgnoreMap()
 	return c, nil
 }
@@ -84,4 +92,16 @@ func (c *Conf) buildIgnoreMap() {
 		}
 	}
 	c.r_ignore_map = r_ignore_map
+}
+func (c *Conf) buildSecretIgnores() {
+	ignore_patterns := make([]*regexp.Regexp, 0)
+	for _, expr := range c.IgnoreSecretPatterns {
+		re, err := regexp.Compile(expr)
+		if err != nil {
+			log.Warn().Err(err).Str("expr", expr).Msg("Ignore Secret Pattern is invalid. Continuing without it")
+			continue
+		}
+		ignore_patterns = append(ignore_patterns, re)
+	}
+	c.s_ignores = ignore_patterns
 }
