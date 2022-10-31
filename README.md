@@ -1,4 +1,6 @@
 # MOSS
+_a rolling secret gathers no MOSS_ - @robbkidd
+
 MOSS is the Multi-Organization Secret Scanner. It is designed to handle scanning many repositories from multiple github orgs as efficiently as possible. Scanning for secrets is done with [Gitleaks](https://github.com/zricethezav/gitleaks)
 
 ## Setting Access Tokens

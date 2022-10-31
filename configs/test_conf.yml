@@ -8,10 +8,10 @@ github_config:
   days_to_scan: 30
 
 # additional arguments can be passed to gitleaks here:
-# gitleaks_config:
-#   additional_args:
-#     - foo=1
-#     - bar=2
+gitleaks_config:
+  additional_args:
+    - foo=1
+    - bar=2
 
 skip_repos: #an array of repos to skip
   - some_org/some_repo

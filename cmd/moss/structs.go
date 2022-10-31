@@ -38,6 +38,7 @@ type GitleaksRepoResult struct {
 
 type Conf struct {
 	GithubConfig         ConfGithubConfig    `yaml:"github_config"`
+	GitLeaksConfig       GitLeaksConfig      `yaml:"gitleaks_config"`
 	SkipRepos            []string            `yaml:"skip_repos"`
 	IgnoreSecretPatterns []string            `yaml:"ignore_secret_pattern"`
 	IgnoreSecrets        []string            `yaml:"ignore_secrets"`
@@ -50,6 +51,9 @@ type ConfGithubConfig struct {
 	OrgsToScan []string `yaml:"orgs_to_scan"`
 	DaysToScan int      `yaml:"days_to_scan"`
 }
+type GitLeaksConfig struct {
+	AdditionalArgs []string `yaml:"additional_args"`
+}
 type ConfOutput struct {
 	Format string `yaml:"format"`
 }
@@ -57,12 +61,12 @@ type ConfOutput struct {
 func (c *Conf) getConfig(confPath string) (*Conf, error) {
 	yamlFile, err := os.ReadFile(confPath)
 	if err != nil {
-		log.Error().Err(err).Str("confPath", confPath).Msg("Failed to read config file")
+		log.Fatal().Err(err).Str("confPath", confPath).Msg("Failed to read config file")
 		return &Conf{}, err
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to unmarshal config file")
+		log.Fatal().Err(err).Msg("failed to unmarshal config file")
 		return &Conf{}, err
 	}
 	// build the regex map
