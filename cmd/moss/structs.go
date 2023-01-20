@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
@@ -27,6 +28,19 @@ type GitleaksResult struct {
 	RuleID      string        `json:"RuleID"`
 }
 
+type GitRepo struct {
+	Name     string
+	FullName string
+	CloneURL string
+	HTMLURL  string
+	Private  bool
+	orgname  string
+	Archived bool
+	PushedAt time.Time
+	pat      string
+	provider string
+}
+
 type GitleaksRepoResult struct {
 	Repository string
 	Org        string
@@ -37,6 +51,7 @@ type GitleaksRepoResult struct {
 }
 
 type Conf struct {
+	GitlabConfig         ConfGitlabConfig    `yaml:"gitlab_config"`
 	GithubConfig         ConfGithubConfig    `yaml:"github_config"`
 	GitLeaksConfig       GitLeaksConfig      `yaml:"gitleaks_config"`
 	SkipRepos            []string            `yaml:"skip_repos"`
@@ -54,11 +69,22 @@ type ConfGithubConfig struct {
 	OrgsToScan []string `yaml:"orgs_to_scan"`
 	DaysToScan int      `yaml:"days_to_scan"`
 }
+type ConfGitlabConfig struct {
+	OrgsToScan []string `yaml:"orgs_to_scan"`
+	DaysToScan int      `yaml:"days_to_scan"`
+}
 type GitLeaksConfig struct {
 	AdditionalArgs []string `yaml:"additional_args"`
 }
 type ConfOutput struct {
 	Format string `yaml:"format"`
+}
+type RepoScanResult struct {
+	Repository string
+	URL        string
+	IsPrivate  bool
+	Org        string
+	ERR        error
 }
 
 func (c *Conf) getConfig(confPath string) (*Conf, error) {
