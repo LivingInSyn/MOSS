@@ -16,7 +16,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/semaphore"
 )
+
+var MAX_CONCURRENT int64 = 20
 
 func check_gitleaks_conf(gitleaks_path string) error {
 	_, err := os.ReadFile(gitleaks_path)
@@ -27,7 +30,9 @@ func check_gitleaks_conf(gitleaks_path string) error {
 	return nil
 }
 
-func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, additional_args []string, results chan GitleaksRepoResult) {
+func scan_repo(repo *github.Repository, pat, orgname, gl_conf_path string, additional_args []string, results chan GitleaksRepoResult, sem *semaphore.Weighted) {
+	// defer releasing a sem
+	defer sem.Release(1)
 	// build a result object
 	result := GitleaksRepoResult{
 		Repository: *repo.Name,
@@ -243,11 +248,17 @@ func main() {
 
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult, runtime.NumCPU())
+	sem := semaphore.NewWeighted(MAX_CONCURRENT)
+	ctx := context.Background()
 	for _, repo := range all_repos {
 		reponame := repo.GetFullName()
 		orgname := strings.Split(reponame, "/")[0]
 		pat := pats[orgname]
-		go scan_repo(repo, pat, orgname, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results)
+		if err := sem.Acquire(ctx, 1); err != nil {
+			// log.Printf("Failed to acquire semaphore: %v", err)
+			log.Fatal().Err(err).Msg("failed to lock a semaphor")
+		}
+		go scan_repo(repo, pat, orgname, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results, sem)
 	}
 	// collect the results
 	collected := 0
