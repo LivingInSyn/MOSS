@@ -1,7 +1,7 @@
 github_config:
   orgs_to_scan:
     # this is an array of github orgs to scan
-    - Viswanath-Vachanala
+    - some_org
     - another_org
   # if set to > 1 it will scan repos pushed to in the last `n` days, 
   # if set to <= 0, it will scan all repos, might be a lot of repos!
@@ -10,7 +10,7 @@ github_config:
 gitlab_config:
   orgs_to_scan:
     # this is an array of gitlab orgs to scan
-    - varomoney
+    - some_org
   days_to_scan: -1
 # additional arguments can be passed to gitleaks here:
 # gitleaks_config:
@@ -25,7 +25,7 @@ ignore_secret_pattern:
 # string than the secret.
 # these are regexes
 #  - '^.*key_id:.*'
-    - '^.*some_id:.*'
+    - '^.*key_id:.*'
 
 ignore_secrets:
 # this is an array of secrets to ignore

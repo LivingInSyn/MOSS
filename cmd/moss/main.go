@@ -17,6 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/semaphore"
 )
 
 func check_gitleaks_conf(gitleaks_path string) error {
@@ -28,7 +29,7 @@ func check_gitleaks_conf(gitleaks_path string) error {
 	return nil
 }
 
-//func scan_gitlab_repos(ctx context.Context)
+// Scan and fetch all the gilab repo list
 func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos []string) (map[string]*GitRepo, error) {
 	gitlab_repos := make(map[string]*GitRepo)
 	for org, pat := range gitlabPats {
@@ -53,14 +54,12 @@ func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos [
 			// List all projects for the org
 			projects, resp, err := git.Projects.ListProjects(opt)
 			all_projects = append(all_projects, projects...)
-			fmt.Println(len(all_projects))
 			if err != nil {
 				return nil, fmt.Errorf("failed to get GitLab projects for org %s: %w", org, err)
 			}
 			if resp.CurrentPage >= resp.TotalPages {
 				break
 			}
-			//fmt.Println(projects[0])
 		}
 
 		for _, project := range all_projects {
@@ -72,10 +71,10 @@ func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos [
 			}
 		}
 	}
-	//fmt.Println(gitlab_repos)
 	return gitlab_repos, nil
 }
 
+// Helper function for skipping the repos
 func contains(arr []string, s string) bool {
 	for _, v := range arr {
 		if v == s {
@@ -85,6 +84,7 @@ func contains(arr []string, s string) bool {
 	return false
 }
 
+// Convert Gitlab to common Git Repo Struct
 func gitlab_to_git(p *gitlab.Project) *GitRepo {
 	return &GitRepo{
 		Name:     p.Name,
@@ -97,6 +97,7 @@ func gitlab_to_git(p *gitlab.Project) *GitRepo {
 	}
 }
 
+// Convert Github to common Git Repo Struct
 func github_to_git(project *github.Repository) *GitRepo {
 	return &GitRepo{
 		Name:     project.GetName(),
@@ -110,7 +111,14 @@ func github_to_git(project *github.Repository) *GitRepo {
 	}
 }
 
-func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, results chan GitleaksRepoResult) {
+func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, results chan GitleaksRepoResult, sem *semaphore.Weighted) {
+	//Semaphone logic for Max Concurrencies
+	ctx := context.Background()
+	if err := sem.Acquire(ctx, 1); err != nil {
+		// log.Printf("Failed to acquire semaphore: %v", err)
+		log.Fatal().Err(err).Msg("failed to lock a semaphore")
+	}
+	defer sem.Release(1)
 	// build a result object
 	result := GitleaksRepoResult{
 		Repository: repo.Name,
@@ -137,7 +145,6 @@ func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, res
 		cloneUrl = strings.Replace(cloneUrl, "https://", fmt.Sprintf("https://oauth2:%s@", repo.pat), 1)
 	}
 	cloneargs := []string{"clone", cloneUrl, dir}
-	//fmt.Println(cloneargs)
 	cmd := exec.Command("git", cloneargs...)
 	if err := cmd.Run(); err != nil {
 		log.Error().Err(err).Str("repo", repo.Name).Msg("failed to clone repo")
@@ -159,7 +166,6 @@ func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, res
 	gl_cmd := exec.Command("gitleaks", gitleaks_args...)
 	gl_cmd.Stdout = &outb
 	gl_cmd.Stderr = &errb
-	//fmt.Println(strings.Join(gl_cmd.Args, " "))
 	log.Debug().Str("repo", repo.FullName).Msg("starting gitleaks scan")
 	if err := gl_cmd.Run(); err != nil {
 		log.Error().Err(err).Str("repo", repo.Name).Msg("error running gitleaks on the repo")
@@ -183,7 +189,6 @@ func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, res
 		return
 	}
 	jsonResults := make([]GitleaksResult, 0)
-	println("------JSONRESULTS-------")
 	err = json.Unmarshal(resultfile, &jsonResults)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.Name).Msg("error unmarshaling gitleaks results")
@@ -195,7 +200,7 @@ func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, res
 	result.Results = jsonResults
 	result.Err = nil
 	results <- result
-	fmt.Println(result.Results)
+	return
 }
 
 func skip_repo(repo *github.Repository, skipRepos []string) bool {
@@ -207,6 +212,7 @@ func skip_repo(repo *github.Repository, skipRepos []string) bool {
 	return false
 }
 
+// Fetch the PATs for the respective ORGs
 func getPats(provider string, orgs []string) map[string]string {
 	var orgPats = map[string]string{}
 	for _, org := range orgs {
@@ -223,11 +229,11 @@ func getPats(provider string, orgs []string) map[string]string {
 	}
 	return orgPats
 }
+
+// Fetch all the github repos
 func get_all_github_repos(pats map[string]string, conf Conf) map[string]*GitRepo {
 	all_repos := make(map[string]*GitRepo, 0)
-	//fmt.Println(conf)
 	for org, pat := range pats {
-		//fmt.Println(org)
 		repos, err := get_org_repos(org, pat, conf.GithubConfig.DaysToScan, conf.SkipRepos)
 		if err != nil {
 			log.Error().Err(err).Str("org", org).Msg("Failed to get repos from org. Continuing")
@@ -242,6 +248,8 @@ func get_all_github_repos(pats map[string]string, conf Conf) map[string]*GitRepo
 	}
 	return all_repos
 }
+
+// Get github repos for the respective ORGs
 func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*github.Repository, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -261,7 +269,6 @@ func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*git
 	for {
 		opt := &github.RepositoryListByOrgOptions{Type: "all", Sort: "pushed", Direction: "desc", ListOptions: github.ListOptions{Page: page}}
 		repos, _, err := client.Repositories.ListByOrg(context.Background(), orgname, opt)
-		//fmt.Println(orgname)
 		if err != nil {
 			log.Error().Err(err).Str("org", orgname).Msg("Error getting repositories from Github")
 			return nil, err
@@ -317,7 +324,7 @@ func main() {
 		gitleaks_toml_path = "./configs/gitleaks.toml"
 	}
 	check_gitleaks_conf(gitleaks_toml_path)
-	// check the PAT exists for each org
+	// Converting in to a func for better organization
 	/*pats := make(map[string]string, 0)
 	for _, org := range conf.GithubConfig.OrgsToScan {
 		patenv := fmt.Sprintf("GITHUB_PAT_%s", org)
@@ -332,13 +339,10 @@ func main() {
 		log.Fatal().Msg("No GitHub PATs found, nothing to scan!")
 	}
 	*/
-	// foreach org, get the repos according to days_to_scan
+	// Fetch the PATs for respective Provider
 	github_pats := getPats("GITHUB", conf.GithubConfig.OrgsToScan)
 	gitlab_pats := getPats("GITLAB", conf.GitlabConfig.OrgsToScan)
-	//fmt.Println(github_pats)
-	//fmt.Println(gitlab_pats)
-	//_, nil := get_all_gitlab_repos(gitlab_pats, conf.GitlabConfig.DaysToScan, conf.SkipRepos)
-	//fmt.Println(gitlab_repos)
+	//collate all the repos
 	all_repos := make(map[string]*GitRepo, 0)
 	for key, value := range get_all_github_repos(github_pats, conf) {
 		all_repos[key] = value
@@ -347,10 +351,7 @@ func main() {
 	for key, value := range gitlab_repos {
 		all_repos[key] = value
 	}
-	fmt.Println(all_repos)
-	//all_repos.append()
-	//all_repos.append(get_all_gitlab_repos(gitlab_pats, conf.GitlabConfig.DaysToScan, conf.SkipRepos))
-	// add a useful debug feature here for large github orgs
+
 	repo_limit_s := os.Getenv("MOSS_DEBUG_LIMIT")
 	if repo_limit_s != "" {
 		repo_limit, err := strconv.Atoi(repo_limit_s)
@@ -374,13 +375,20 @@ func main() {
 	if len(all_repos) == 0 {
 		log.Fatal().Msg("no repos found to scan!")
 	}
+	var MAX_CONCURRENT int64
+	MAX_CONCURRENT, err := strconv.ParseInt(os.Getenv("MOSS_MAX_CONCURRENT"), 10, 64)
+	if err != nil || MAX_CONCURRENT == 0 {
+		log.Error().Err(err).Str("MOSS_MAX_CONCURRENT", os.Getenv("MOSS_MAX_CONCURRENT")).
+			Msg("Failed to cast value for moss max concurrent limit, setting to 20")
+		MAX_CONCURRENT = 20
+
+	}
+	sem := semaphore.NewWeighted(MAX_CONCURRENT)
 
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult, runtime.NumCPU())
 	for _, repo := range all_repos {
-		fmt.Println("---------orgname-----")
-		fmt.Println(repo.orgname)
-		go scan_repo(repo, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results)
+		go scan_repo(repo, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results, sem)
 	}
 	// collect the results
 	collected := 0
@@ -395,6 +403,7 @@ func main() {
 			break
 		}
 	}
+
 	// format and output the results nicely
 	output_dir := os.Getenv("MOSS_OUTDIR")
 	if output_dir == "" {
