@@ -101,7 +101,7 @@ func (c *Conf) getConfig(confPath string) (*Conf, error) {
 	}
 	// build the regex map
 	c.buildIgnoreMap()
-	c.buildIgnoreMap()
+	c.buildSecretIgnores()
 	return c, nil
 }
 func (c *Conf) buildIgnoreMap() {
