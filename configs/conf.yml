@@ -1,8 +1,7 @@
 github_config:
   orgs_to_scan:
     # this is an array of github orgs to scan
-    - some_org
-    - another_org
+    - LivingInSynTestOrg 
   # if set to > 1 it will scan repos pushed to in the last `n` days, 
   # if set to <= 0, it will scan all repos, might be a lot of repos!
   days_to_scan: -1
@@ -10,7 +9,6 @@ github_config:
 gitlab_config:
   orgs_to_scan:
     # this is an array of gitlab orgs to scan
-    - some_org
   days_to_scan: -1
 # additional arguments can be passed to gitleaks here:
 # gitleaks_config:

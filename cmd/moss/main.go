@@ -129,6 +129,7 @@ func skip_repo(repo *github.Repository, skipRepos []string) bool {
 func getPats(provider string, orgs []string) map[string]string {
 	var orgPats = map[string]string{}
 	for _, org := range orgs {
+		log.Debug().Str("env_var", provider+"_PAT_"+org).Msg("trying to get env var")
 		pat := os.Getenv(provider + "_PAT_" + org)
 		if pat == "" {
 			log.Error().Str("org", org).Str("provider", provider).Msg("provider PAT for org doesn't exist. Skipping it")
@@ -136,9 +137,6 @@ func getPats(provider string, orgs []string) map[string]string {
 
 		}
 		orgPats[org] = pat
-	}
-	if len(orgPats) == 0 {
-		log.Error().Str("provider", provider).Msg("No provider variables exist")
 	}
 	return orgPats
 }
