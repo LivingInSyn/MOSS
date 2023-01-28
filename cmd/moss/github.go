@@ -9,6 +9,22 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Convert Github to common Git Repo Struct
+func github_to_git(project *github.Repository, pat string) *GitRepo {
+	return &GitRepo{
+		Name:     project.GetName(),
+		FullName: project.GetFullName(),
+		CloneURL: project.GetCloneURL(),
+		HTMLURL:  project.GetHTMLURL(),
+		Private:  project.GetPrivate(),
+		orgname:  project.GetOwner().GetLogin(),
+		Archived: project.GetArchived(),
+		PushedAt: project.GetPushedAt().Time,
+		pat:      pat,
+		provider: "GITHUB",
+	}
+}
+
 // Fetch all the github repos. Returns a map of repo URL -> *GitRepo
 func get_all_github_repos(pats map[string]string, conf Conf) map[string]*GitRepo {
 	all_repos := make(map[string]*GitRepo, 0)
@@ -19,10 +35,7 @@ func get_all_github_repos(pats map[string]string, conf Conf) map[string]*GitRepo
 			continue
 		}
 		for _, repo := range repos {
-			all_repos[*repo.HTMLURL] = github_to_git(repo)
-			all_repos[*repo.HTMLURL].pat = pat
-			all_repos[*repo.HTMLURL].provider = "GITHUB"
-
+			all_repos[*repo.HTMLURL] = github_to_git(repo, pat)
 		}
 	}
 	return all_repos

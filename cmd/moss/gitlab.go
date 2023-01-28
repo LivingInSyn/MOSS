@@ -16,6 +16,22 @@ func contains(arr []string, s string) bool {
 	return false
 }
 
+// Convert Gitlab to common Git Repo Struct
+func gitlab_to_git(p *gitlab.Project, pat, org string) *GitRepo {
+	return &GitRepo{
+		Name:     p.Name,
+		FullName: p.PathWithNamespace,
+		CloneURL: p.HTTPURLToRepo,
+		HTMLURL:  p.WebURL,
+		Private:  p.Visibility == "private",
+		Archived: p.Archived,
+		PushedAt: *p.LastActivityAt,
+		pat:      pat,
+		orgname:  org,
+		provider: "GITLAB",
+	}
+}
+
 // Scan and fetch all the gilab repo list
 func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos []string) (map[string]*GitRepo, error) {
 	gitlab_repos := make(map[string]*GitRepo)
@@ -51,10 +67,7 @@ func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos [
 
 		for _, project := range all_projects {
 			if !contains(skipRepos, project.PathWithNamespace) {
-				gitlab_repos[project.WebURL] = gitlab_to_git(project)
-				gitlab_repos[project.WebURL].pat = pat
-				gitlab_repos[project.WebURL].provider = "GITLAB"
-				gitlab_repos[project.WebURL].orgname = org
+				gitlab_repos[project.WebURL] = gitlab_to_git(project, pat, org)
 			}
 		}
 	}

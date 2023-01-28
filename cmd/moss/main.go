@@ -14,7 +14,6 @@ import (
 	"github.com/google/go-github/v47/github"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/xanzy/go-gitlab"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -25,33 +24,6 @@ func check_gitleaks_conf(gitleaks_path string) error {
 		return err
 	}
 	return nil
-}
-
-// Convert Gitlab to common Git Repo Struct
-func gitlab_to_git(p *gitlab.Project) *GitRepo {
-	return &GitRepo{
-		Name:     p.Name,
-		FullName: p.PathWithNamespace,
-		CloneURL: p.HTTPURLToRepo,
-		HTMLURL:  p.WebURL,
-		Private:  p.Visibility == "private",
-		Archived: p.Archived,
-		PushedAt: *p.LastActivityAt,
-	}
-}
-
-// Convert Github to common Git Repo Struct
-func github_to_git(project *github.Repository) *GitRepo {
-	return &GitRepo{
-		Name:     project.GetName(),
-		FullName: project.GetFullName(),
-		CloneURL: project.GetCloneURL(),
-		HTMLURL:  project.GetHTMLURL(),
-		Private:  project.GetPrivate(),
-		orgname:  project.GetOwner().GetLogin(),
-		Archived: project.GetArchived(),
-		PushedAt: project.GetPushedAt().Time,
-	}
 }
 
 func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, results chan GitleaksRepoResult, sem *semaphore.Weighted) {
