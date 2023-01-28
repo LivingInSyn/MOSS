@@ -182,8 +182,6 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 	// load the config file
-	foo := os.Environ()
-	_ = foo
 	confdir := os.Getenv("MOSS_CONFDIR")
 	if confdir == "" {
 		confdir = "./configs/conf.yml"
@@ -197,21 +195,6 @@ func main() {
 		gitleaks_toml_path = "./configs/gitleaks.toml"
 	}
 	check_gitleaks_conf(gitleaks_toml_path)
-	// Converting in to a func for better organization
-	/*pats := make(map[string]string, 0)
-	for _, org := range conf.GithubConfig.OrgsToScan {
-		patenv := fmt.Sprintf("GITHUB_PAT_%s", org)
-		pat := os.Getenv(patenv)
-		if pat == "" {
-			log.Error().Str("org", org).Msg("PAT for org doesn't exist. Skipping it")
-			continue
-		}
-		pats[org] = pat
-	}
-	if len(pats) == 0 {
-		log.Fatal().Msg("No GitHub PATs found, nothing to scan!")
-	}
-	*/
 	// Fetch the PATs for respective Provider
 	github_pats := getPats("GITHUB", conf.GithubConfig.OrgsToScan)
 	gitlab_pats := getPats("GITLAB", conf.GitlabConfig.OrgsToScan)
@@ -224,7 +207,7 @@ func main() {
 	for key, value := range gitlab_repos {
 		all_repos[key] = value
 	}
-
+	// if we're debugging,  set a limit
 	repo_limit_s := os.Getenv("MOSS_DEBUG_LIMIT")
 	if repo_limit_s != "" {
 		repo_limit, err := strconv.Atoi(repo_limit_s)

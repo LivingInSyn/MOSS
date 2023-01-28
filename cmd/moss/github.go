@@ -9,7 +9,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// Fetch all the github repos
+// Fetch all the github repos. Returns a map of repo URL -> *GitRepo
 func get_all_github_repos(pats map[string]string, conf Conf) map[string]*GitRepo {
 	all_repos := make(map[string]*GitRepo, 0)
 	for org, pat := range pats {
