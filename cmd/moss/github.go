@@ -50,20 +50,18 @@ func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*git
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-	//TEMP
-	// r, _, _ := client.Repositories.Get(context.Background(), "puppetlabs", "puppetlabs-docker")
-	// return []*github.Repository{r}, nil
-	//end temp
-
 	time_ago := time.Now().AddDate(0, 0, (-1 * daysago))
 	org_repos := make([]*github.Repository, 0)
-	page := 0
+	page := 1
 	for {
 		opt := &github.RepositoryListByOrgOptions{Type: "all", Sort: "pushed", Direction: "desc", ListOptions: github.ListOptions{Page: page}}
 		repos, _, err := client.Repositories.ListByOrg(context.Background(), orgname, opt)
 		if err != nil {
 			log.Error().Err(err).Str("org", orgname).Msg("Error getting repositories from Github")
 			return nil, err
+		}
+		if len(repos) == 0 {
+			break
 		}
 		saw_older := false
 		for _, repo := range repos {
@@ -76,7 +74,7 @@ func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*git
 				log.Debug().Str("repo", *repo.FullName).Msg("skipping repo due to config")
 				continue
 			}
-			if repo.PushedAt.Time.Before(time_ago) {
+			if daysago > 0 && repo.PushedAt.Time.Before(time_ago) {
 				saw_older = true
 				break
 			}
