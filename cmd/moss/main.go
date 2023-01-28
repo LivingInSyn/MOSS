@@ -10,13 +10,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/go-github/v47/github"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/xanzy/go-gitlab"
-	"golang.org/x/oauth2"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -27,61 +25,6 @@ func check_gitleaks_conf(gitleaks_path string) error {
 		return err
 	}
 	return nil
-}
-
-// Scan and fetch all the gilab repo list
-func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos []string) (map[string]*GitRepo, error) {
-	gitlab_repos := make(map[string]*GitRepo)
-	for org, pat := range gitlabPats {
-		const perPage = 100
-		var all_projects []*gitlab.Project
-		git, err := gitlab.NewClient(pat, gitlab.WithBaseURL("https://gitlab."+org+".com"))
-		if err != nil {
-			return nil, fmt.Errorf("failed to connect to GitLab for org %s: %w", org, err)
-		}
-		for page := 1; ; page++ {
-
-			opt := &gitlab.ListProjectsOptions{
-				Membership: gitlab.Bool(true),
-				Simple:     gitlab.Bool(true),
-				OrderBy:    gitlab.String("created_at"),
-				Sort:       gitlab.String("desc"),
-				ListOptions: gitlab.ListOptions{
-					PerPage: perPage,
-					Page:    page,
-				},
-			}
-			// List all projects for the org
-			projects, resp, err := git.Projects.ListProjects(opt)
-			all_projects = append(all_projects, projects...)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get GitLab projects for org %s: %w", org, err)
-			}
-			if resp.CurrentPage >= resp.TotalPages {
-				break
-			}
-		}
-
-		for _, project := range all_projects {
-			if !contains(skipRepos, project.PathWithNamespace) {
-				gitlab_repos[project.WebURL] = gitlab_to_git(project)
-				*&gitlab_repos[project.WebURL].pat = pat
-				*&gitlab_repos[project.WebURL].provider = "GITLAB"
-				*&gitlab_repos[project.WebURL].orgname = org
-			}
-		}
-	}
-	return gitlab_repos, nil
-}
-
-// Helper function for skipping the repos
-func contains(arr []string, s string) bool {
-	for _, v := range arr {
-		if v == s {
-			return true
-		}
-	}
-	return false
 }
 
 // Convert Gitlab to common Git Repo Struct
@@ -140,8 +83,7 @@ func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, res
 	cloneUrl := repo.CloneURL
 	if repo.provider == "GITHUB" {
 		cloneUrl = strings.Replace(cloneUrl, "https://", fmt.Sprintf("https://%s@", repo.pat), 1)
-	}
-	if repo.provider == "GITLAB" {
+	} else if repo.provider == "GITLAB" {
 		cloneUrl = strings.Replace(cloneUrl, "https://", fmt.Sprintf("https://oauth2:%s@", repo.pat), 1)
 	}
 	cloneargs := []string{"clone", cloneUrl, dir}
@@ -200,7 +142,6 @@ func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, res
 	result.Results = jsonResults
 	result.Err = nil
 	results <- result
-	return
 }
 
 func skip_repo(repo *github.Repository, skipRepos []string) bool {
@@ -228,74 +169,6 @@ func getPats(provider string, orgs []string) map[string]string {
 		log.Error().Str("provider", provider).Msg("No provider variables exist")
 	}
 	return orgPats
-}
-
-// Fetch all the github repos
-func get_all_github_repos(pats map[string]string, conf Conf) map[string]*GitRepo {
-	all_repos := make(map[string]*GitRepo, 0)
-	for org, pat := range pats {
-		repos, err := get_org_repos(org, pat, conf.GithubConfig.DaysToScan, conf.SkipRepos)
-		if err != nil {
-			log.Error().Err(err).Str("org", org).Msg("Failed to get repos from org. Continuing")
-			continue
-		}
-		for _, repo := range repos {
-			all_repos[*repo.HTMLURL] = github_to_git(repo)
-			*&all_repos[*repo.HTMLURL].pat = pat
-			*&all_repos[*repo.HTMLURL].provider = "GITHUB"
-
-		}
-	}
-	return all_repos
-}
-
-// Get github repos for the respective ORGs
-func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*github.Repository, error) {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: pat},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
-	//TEMP
-	// r, _, _ := client.Repositories.Get(context.Background(), "puppetlabs", "puppetlabs-docker")
-	// return []*github.Repository{r}, nil
-	//end temp
-
-	time_ago := time.Now().AddDate(0, 0, (-1 * daysago))
-	org_repos := make([]*github.Repository, 0)
-	page := 0
-	for {
-		opt := &github.RepositoryListByOrgOptions{Type: "all", Sort: "pushed", Direction: "desc", ListOptions: github.ListOptions{Page: page}}
-		repos, _, err := client.Repositories.ListByOrg(context.Background(), orgname, opt)
-		if err != nil {
-			log.Error().Err(err).Str("org", orgname).Msg("Error getting repositories from Github")
-			return nil, err
-		}
-		saw_older := false
-		for _, repo := range repos {
-
-			if *repo.Archived {
-				log.Debug().Str("repo", *repo.FullName).Msg("skipping repo because it's archived")
-				continue
-			}
-			if skip_repo(repo, skipRepos) {
-				log.Debug().Str("repo", *repo.FullName).Msg("skipping repo due to config")
-				continue
-			}
-			if repo.PushedAt.Time.Before(time_ago) {
-				saw_older = true
-				break
-			}
-			org_repos = append(org_repos, repo)
-		}
-		if saw_older {
-			break
-		}
-		page = page + 1
-	}
-	return org_repos, nil
 }
 
 func main() {
@@ -375,15 +248,8 @@ func main() {
 	if len(all_repos) == 0 {
 		log.Fatal().Msg("no repos found to scan!")
 	}
-	var MAX_CONCURRENT int64
-	MAX_CONCURRENT, err := strconv.ParseInt(os.Getenv("MOSS_MAX_CONCURRENT"), 10, 64)
-	if err != nil || MAX_CONCURRENT == 0 {
-		log.Error().Err(err).Str("MOSS_MAX_CONCURRENT", os.Getenv("MOSS_MAX_CONCURRENT")).
-			Msg("Failed to cast value for moss max concurrent limit, setting to 20")
-		MAX_CONCURRENT = 20
-
-	}
-	sem := semaphore.NewWeighted(MAX_CONCURRENT)
+	// build a semaphor for MaxConcurrency
+	sem := semaphore.NewWeighted(conf.MaxConcurrency)
 
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult, runtime.NumCPU())

@@ -60,6 +60,7 @@ type Conf struct {
 	IgnoreCommits        []string            `yaml:"ignore_commits"`
 	ReposToIgnore        map[string][]string `yaml:"repo_ignore"`
 	Output               ConfOutput          `yaml:"output"`
+	MaxConcurrency       int64               `yaml:"max_concurrency"`
 	// r_ignore_map is the ignoring of paths in repos
 	r_ignore_map map[string][]*regexp.Regexp
 	// s_ignores is the slice of regular expressions for secrets to ignore

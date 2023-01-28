@@ -35,3 +35,5 @@ repo_ignore:
 output:
   # supported formats are markdown and json
   format: markdown
+# max number of repos to scan at the same time
+max_concurrency: 20

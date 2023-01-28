@@ -41,4 +41,8 @@ func TestConfigParsing(t *testing.T) {
 	if conf.Output.Format != "markdown" {
 		t.Errorf("failed to get format correctly")
 	}
+	var mc int64 = 20
+	if conf.MaxConcurrency != mc {
+		t.Errorf("got the wrong max concurrency")
+	}
 }
