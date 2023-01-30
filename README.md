@@ -1,7 +1,7 @@
 # MOSS
 _a rolling secret gathers no MOSS_ - @robbkidd
 
-MOSS is the Multi-Organization Secret Scanner. It is designed to handle scanning many repositories from multiple github orgs as efficiently as possible. Scanning for secrets is done with [Gitleaks](https://github.com/zricethezav/gitleaks)
+MOSS is the Multi-Organization Secret Scanner. It is designed to handle scanning many repositories from multiple github AND gitlab orgs as efficiently as possible. Scanning for secrets is done with [Gitleaks](https://github.com/zricethezav/gitleaks)
 
 ## Setting Access Tokens
 Organization access tokens (PATs) are passed as env vars.
@@ -16,6 +16,9 @@ MOSS looks for these PATs based on the organizations configured in the `github_c
 
 ## MOSS Config File
 A sample configuration file with annotations is [here](./configs/conf.yml)
+
+## max_concurrency
+Care should be taken with max_concurrency. Larger values of max concurrency will result in faster scans* with increased parallelization up to the point of instability. 20 seems to be a reasonable default value. 
 
 ### Output
 The currently supported formats are `markdown` and `json`. Markdown files are written by default to `/output/output.md` but the path where `output.md` can be written to can be set using an environmental variable.
