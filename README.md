@@ -1,15 +1,24 @@
 # MOSS
 _a rolling secret gathers no MOSS_ - @robbkidd
 
-MOSS is the Multi-Organization Secret Scanner. It is designed to handle scanning many repositories from multiple github orgs as efficiently as possible. Scanning for secrets is done with [Gitleaks](https://github.com/zricethezav/gitleaks)
+MOSS is the Multi-Organization Secret Scanner. It is designed to handle scanning many repositories from multiple github AND gitlab orgs as efficiently as possible. Scanning for secrets is done with [Gitleaks](https://github.com/zricethezav/gitleaks)
 
 ## Setting Access Tokens
-Organization access tokens (PATs) are passed as env vars in the format `PAT_<orgname>`. So if your orgname is `foo` you would pass the PAT for the account running the scan as: `PAT_foo`. 
+Organization access tokens (PATs) are passed as env vars.
+
+GitHub tokens will be in the form: `GITHUB_PAT_<orgname>`
+
+Gitlab tokens will be in the format `GITLAB_PAT_<orgname>`. 
+
+So if you're scanning a github org and the orgname is `foo` you would pass the PAT for the account running the scan as: `GITHUB_PAT_foo`. 
 
 MOSS looks for these PATs based on the organizations configured in the `github_config.orgs_to_scan` section of the config file documented below.
 
 ## MOSS Config File
 A sample configuration file with annotations is [here](./configs/conf.yml)
+
+## max_concurrency
+Care should be taken with max_concurrency. Larger values of max concurrency will result in faster scans* with increased parallelization up to the point of instability. 20 seems to be a reasonable default value. 
 
 ### Output
 The currently supported formats are `markdown` and `json`. Markdown files are written by default to `/output/output.md` but the path where `output.md` can be written to can be set using an environmental variable.
@@ -32,7 +41,7 @@ Docker is the preferred method for running MOSS. A sample run command would be:
 
 ```shell
 docker run --rm \
-    -e PAT_someorg=$(GH_TOKEN) \
+    -e GITHUB_PAT_someorg=$(GH_TOKEN) \
     -v `pwd`/configs/conf.yml:/usr/src/moss/configs/conf.yml \
     -v `pwd`/configs/gitleaks.toml:/usr/src/moss/configs/gitleaks.toml \
     -v `pwd`/sample_output:/output \
