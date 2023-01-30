@@ -23,4 +23,4 @@ jobs:
           goarch: ${{ matrix.goarch }}
           project_path: "./cmd/moss"
           binary_name: "MOSS"
-          extra_files: LICENSE Readme.md
+          extra_files: LICENSE README.md
