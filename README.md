@@ -38,7 +38,7 @@ Docker is the preferred method for running MOSS. A sample run command would be:
 
 ```shell
 docker run --rm \
-    -e PAT_someorg=$(GH_TOKEN) \
+    -e GITHUB_PAT_someorg=$(GH_TOKEN) \
     -v `pwd`/configs/conf.yml:/usr/src/moss/configs/conf.yml \
     -v `pwd`/configs/gitleaks.toml:/usr/src/moss/configs/gitleaks.toml \
     -v `pwd`/sample_output:/output \
