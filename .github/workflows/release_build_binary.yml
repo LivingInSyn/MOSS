@@ -22,5 +22,4 @@ jobs:
           goarch: ${{ matrix.goarch }}
           project_path: "./cmd/moss"
           binary_name: "MOSS"
-          ldflags: "-s -w"
           extra_files: LICENSE Readme.md
