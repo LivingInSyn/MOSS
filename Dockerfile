@@ -12,7 +12,7 @@ RUN go mod download && go mod verify
 COPY ./cmd .
 COPY ./configs .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o moss
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o moss ./...
 # RUN go build -v -o /usr/local/bin/moss ./...
 
 # move the build from the builder to a debian minimal image
