@@ -1,4 +1,4 @@
-FROM golang:1.19
+FROM golang:1.19 as builder
 
 WORKDIR /usr/src/moss
 
@@ -12,6 +12,12 @@ RUN go mod download && go mod verify
 COPY ./cmd .
 COPY ./configs .
 
-RUN go build -v -o /usr/local/bin/moss ./...
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o moss
+# RUN go build -v -o /usr/local/bin/moss ./...
 
-CMD ["moss"]
+# move the build from the builder to a debian minimal image
+from alpine:latest
+WORKDIR /root/
+COPY --from=builder /usr/src/moss/moss /root/moss
+RUN chmod +x /root/moss
+CMD ["/root/moss"]
