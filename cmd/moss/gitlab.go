@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/xanzy/go-gitlab"
 )
@@ -35,6 +36,7 @@ func gitlab_to_git(p *gitlab.Project, pat, org string) *GitRepo {
 // Scan and fetch all the gilab repo list
 func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos []string) (map[string]*GitRepo, error) {
 	gitlab_repos := make(map[string]*GitRepo)
+	time_ago := time.Now().AddDate(0, 0, (-1 * daysAgo))
 	for org, pat := range gitlabPats {
 		const perPage = 100
 		var all_projects []*gitlab.Project
@@ -45,10 +47,11 @@ func get_all_gitlab_repos(gitlabPats map[string]string, daysAgo int, skipRepos [
 		for page := 1; ; page++ {
 
 			opt := &gitlab.ListProjectsOptions{
-				Membership: gitlab.Bool(true),
-				Simple:     gitlab.Bool(true),
-				OrderBy:    gitlab.String("created_at"),
-				Sort:       gitlab.String("desc"),
+				LastActivityAfter: gitlab.Time(time_ago),
+				Membership:        gitlab.Bool(true),
+				Simple:            gitlab.Bool(true),
+				OrderBy:           gitlab.String("created_at"),
+				Sort:              gitlab.String("desc"),
 				ListOptions: gitlab.ListOptions{
 					PerPage: perPage,
 					Page:    page,
