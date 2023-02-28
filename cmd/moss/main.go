@@ -27,6 +27,12 @@ func check_gitleaks_conf(gitleaks_path string) error {
 }
 
 func scan_repo(repo *GitRepo, gl_conf_path string, additional_args []string, results chan GitleaksRepoResult, sem *semaphore.Weighted) {
+	//Semaphone logic for Max Concurrencies
+	ctx := context.Background()
+	if err := sem.Acquire(ctx, 1); err != nil {
+		// log.Printf("Failed to acquire semaphore: %v", err)
+		log.Fatal().Err(err).Msg("failed to lock a semaphore")
+	}
 	defer sem.Release(1)
 	// build a result object
 	result := GitleaksRepoResult{
@@ -197,12 +203,6 @@ func main() {
 	}
 	// build a semaphor for MaxConcurrency
 	sem := semaphore.NewWeighted(conf.MaxConcurrency)
-	//Semaphone logic for Max Concurrencies
-	ctx := context.Background()
-	if err := sem.Acquire(ctx, 1); err != nil {
-		// log.Printf("Failed to acquire semaphore: %v", err)
-		log.Fatal().Err(err).Msg("failed to lock a semaphore")
-	}
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult, runtime.NumCPU())
 	for _, repo := range all_repos {
