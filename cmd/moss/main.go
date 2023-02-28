@@ -203,7 +203,6 @@ func main() {
 	}
 	// build a semaphor for MaxConcurrency
 	sem := semaphore.NewWeighted(conf.MaxConcurrency)
-
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult, runtime.NumCPU())
 	for _, repo := range all_repos {
