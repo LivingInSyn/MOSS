@@ -20,6 +20,17 @@ A sample configuration file with annotations is [here](./configs/conf.yml)
 ## max_concurrency
 Care should be taken with max_concurrency. Larger values of max concurrency will result in faster scans* with increased parallelization up to the point of instability. 20 seems to be a reasonable default value. 
 
+## Scanning a specific repository
+Specific repositories in an organization can be scanned by adding a flag `repo` to the binary. repo in this case is the HTML URL of the repository. It can be done in the following way
+```shell
+docker run --rm \
+    -e GITLAB_PAT_someorg=$(GL_TOKEN) \
+    -v `pwd`/configs/conf.yml:/usr/src/moss/configs/conf.yml \
+    -v `pwd`/configs/gitleaks.toml:/usr/src/moss/configs/gitleaks.toml \
+    -v `pwd`/sample_output:/output \
+    --name moss_r \
+    ghcr.io/livinginsyn/moss:latest -repo=https://gitlab.com/<path_to_repository>
+``` 
 ### Output
 The currently supported formats are `markdown` and `json`. Markdown files are written by default to `/output/output.md` but the path where `output.md` can be written to can be set using an environmental variable.
 

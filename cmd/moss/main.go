@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -168,6 +169,9 @@ func main() {
 	// Fetch the PATs for respective Provider
 	github_pats := getPats("GITHUB", conf.GithubConfig.OrgsToScan)
 	gitlab_pats := getPats("GITLAB", conf.GitlabConfig.OrgsToScan)
+	//Check for scanning single repository
+	repoURL := flag.String("repo", "", "Repository URL to scan")
+	flag.Parse()
 	//collate all the repos
 	all_repos := make(map[string]*GitRepo, 0)
 	for key, value := range get_all_github_repos(github_pats, conf) {
@@ -205,8 +209,24 @@ func main() {
 	sem := semaphore.NewWeighted(conf.MaxConcurrency)
 	// create the channel and kick off the scans
 	results := make(chan GitleaksRepoResult, runtime.NumCPU())
-	for _, repo := range all_repos {
-		go scan_repo(repo, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results, sem)
+	if *repoURL != "" {
+		log.Debug().Msg("Respository is specified. scanning only the repository")
+		// Find the specific repository in the all_repos map
+		repo := all_repos[*repoURL]
+		if *repo != (GitRepo{}) {
+			// Scan the specific repository using the scan_repo function
+			scan_repo(repo, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results, sem)
+			//Clearing the all_repos to make sure the scan is 100%
+			all_repos = map[string]*GitRepo{
+				*repoURL: all_repos[*repoURL],
+			}
+		} else {
+			log.Fatal().Str("repoURL", *repoURL).Msg("Repository not found in the org")
+		}
+	} else {
+		for _, repo := range all_repos {
+			go scan_repo(repo, gitleaks_toml_path, conf.GitLeaksConfig.AdditionalArgs, results, sem)
+		}
 	}
 	// collect the results
 	collected := 0
