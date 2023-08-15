@@ -36,7 +36,7 @@ The currently supported formats are `markdown` and `json`. Markdown files are wr
 
 Json files are named `output.json` by default and will also be written to the `/output` folder unless overridden.
 
-Supported formats can be overriden with command arguments while running moss 
+Supported formats can be overriden with command-line arguments while running moss 
 ```shell
 moss -format=<json|markdown>
 ```
