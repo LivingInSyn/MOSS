@@ -171,6 +171,7 @@ func main() {
 	gitlab_pats := getPats("GITLAB", conf.GitlabConfig.OrgsToScan)
 	//Check for scanning single repository
 	repoURL := flag.String("repo", "", "Repository URL to scan")
+	outputFormat := flag.String("format", "", "Output Format")
 	flag.Parse()
 	//collate all the repos
 	all_repos := make(map[string]*GitRepo, 0)
@@ -248,17 +249,21 @@ func main() {
 		output_dir = "/output"
 	}
 	all_orgs := append(conf.GithubConfig.OrgsToScan, conf.GitlabConfig.OrgsToScan...)
-	if strings.ToLower(conf.Output.Format) == "json" {
+	*outputFormat = strings.ToLower(*outputFormat)
+	if *outputFormat == "" {
+		*outputFormat = strings.ToLower(conf.Output.Format)
+	}
+	if *outputFormat == "json" {
 		output := json_output(final_results, all_orgs)
 		// todo: make this part of the conf
 		outpath := fmt.Sprintf("%s/output.json", output_dir)
 		os.WriteFile(outpath, []byte(output), 0644)
-	} else if strings.ToLower(conf.Output.Format) == "html" {
+	} else if *outputFormat == "html" {
 		err := html_output(final_results, all_orgs, "")
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating html output")
 		}
-	} else if strings.ToLower(conf.Output.Format) == "markdown" {
+	} else if *outputFormat == "markdown" {
 		mdown_out := markdown_output(final_results, all_orgs)
 		outpath := fmt.Sprintf("%s/output.md", output_dir)
 		os.WriteFile(outpath, []byte(mdown_out), 0644)
