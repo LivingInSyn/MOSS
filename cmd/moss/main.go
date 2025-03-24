@@ -156,9 +156,6 @@ func main() {
 		gitleaks_toml_path = "./configs/gitleaks.toml"
 	}
 	check_gitleaks_conf(gitleaks_toml_path)
-	// Fetch the PATs for respective Provider
-	// github_pats := getPats("GITHUB", conf.GithubConfig.OrgsToScan)
-	// gitlab_pats := getPats("GITLAB", conf.GitlabConfig.OrgsToScan)
 	//Check for scanning single repository
 	repoURL := flag.String("repo", "", "Repository URL to scan")
 	outputFormat := flag.String("format", "", "Output Format")
