@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v47/github"
@@ -25,39 +28,75 @@ func github_to_git(project *github.Repository, pat string) *GitRepo {
 	}
 }
 
-// Fetch all the github repos. Returns a map of repo URL -> *GitRepo
-func get_all_github_repos(pats map[string]string, conf Conf) map[string]*GitRepo {
-	all_repos := make(map[string]*GitRepo, 0)
-	for org, pat := range pats {
-		repos, err := get_org_repos(org, pat, conf.GithubConfig.DaysToScan, conf.SkipRepos)
+func getPat(provider string, org OrgConfig) string {
+	token := ""
+	provider = strings.ToUpper(provider)
+	if org.Type == "cloud" {
+		token = os.Getenv(provider + "_PAT_" + org.Name + "_CLOUD")
+	}
+	if org.Type == "onprem" {
+		token = os.Getenv(provider + "_PAT_" + org.Name + "_ONPREM")
+	}
+	if token == "" {
+		log.Error().Str("org", org.Name).Msg("token missing for org")
+	}
+	return token
+}
+
+func InitGitHubClient(org OrgConfig, token string) (*github.Client, error) {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(ctx, ts)
+
+	if org.Type == "onprem" {
+		if org.BaseURL == "" {
+			return nil, fmt.Errorf("GitHub on-prem org '%s' requires base_url", org.Name)
+		}
+		client, err := github.NewEnterpriseClient(org.BaseURL, org.BaseURL, tc)
 		if err != nil {
-			log.Error().Err(err).Str("org", org).Msg("Failed to get repos from org. Continuing")
+			return nil, err
+		}
+		return client, nil
+	}
+
+	return github.NewClient(tc), nil
+}
+
+func get_all_github_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, error) {
+	all_repos := make(map[string]*GitRepo, 0)
+
+	for _, org := range orgs {
+		pat := getPat("github", org)
+		client, err := InitGitHubClient(org, pat)
+		if err != nil {
+			log.Printf("[GitHub:%s] client init error: %v", org.Name, err)
 			continue
 		}
+
+		repos, err := get_org_repos(org, client, conf.GithubConfig.DaysToScan, conf.SkipRepos)
+
+		if err != nil {
+			log.Error().Err(err).Str("org", org.Name).Msg("Failed to get repos from org. Continuing")
+			continue
+		}
+
 		for _, repo := range repos {
 			all_repos[*repo.HTMLURL] = github_to_git(repo, pat)
 		}
 	}
-	return all_repos
+	return all_repos, nil
 }
 
 // Get github repos for the respective ORGs
-func get_org_repos(orgname, pat string, daysago int, skipRepos []string) ([]*github.Repository, error) {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: pat},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
+func get_org_repos(org OrgConfig, client *github.Client, daysago int, skipRepos []string) ([]*github.Repository, error) {
 	time_ago := time.Now().AddDate(0, 0, (-1 * daysago))
 	org_repos := make([]*github.Repository, 0)
 	page := 1
 	for {
 		opt := &github.RepositoryListByOrgOptions{Type: "all", Sort: "pushed", Direction: "desc", ListOptions: github.ListOptions{Page: page}}
-		repos, _, err := client.Repositories.ListByOrg(context.Background(), orgname, opt)
+		repos, _, err := client.Repositories.ListByOrg(context.Background(), org.Name, opt)
 		if err != nil {
-			log.Error().Err(err).Str("org", orgname).Msg("Error getting repositories from Github")
+			log.Error().Err(err).Str("org", org.Name).Msg("Error getting repositories from Github")
 			return nil, err
 		}
 		if len(repos) == 0 {

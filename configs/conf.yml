@@ -1,20 +1,21 @@
 github_config:
   orgs_to_scan:
-    # this is an array of github orgs to scan
-    - LivingInSynTestOrg 
+    # this is an array of orgs to scan
+    - name: LivingInSynTestOrg
+      type: cloud
   # if set to > 1 it will scan repos pushed to in the last `n` days, 
   # if set to <= 0, it will scan all repos, might be a lot of repos!
-  days_to_scan: -1
+  days_to_scan: 30
 
 gitlab_config:
   orgs_to_scan:
+    - name: testOrg1
+      type: onprem
+      base_url: https://gitlab.test-org.com
+    - name: testOrg2
+      type: cloud
     # this is an array of gitlab orgs to scan
-  days_to_scan: -1
-# additional arguments can be passed to gitleaks here:
-# gitleaks_config:
-#   additional_args:
-#     - foo=1
-#     - bar=2
+  days_to_scan: 20
 
 skip_repos: #an array of repos to skip
   - some_org/some_repo

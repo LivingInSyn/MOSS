@@ -125,23 +125,13 @@ func skip_repo(repo *github.Repository, skipRepos []string) bool {
 	}
 	return false
 }
-
-// Fetch the PATs for the respective ORGs
-func getPats(provider string, orgs []string) map[string]string {
-	var orgPats = map[string]string{}
+func extractOrgnames(orgs []OrgConfig) []string {
+	orgnames := make([]string, 0)
 	for _, org := range orgs {
-		log.Debug().Str("env_var", provider+"_PAT_"+org).Msg("trying to get env var")
-		pat := os.Getenv(provider + "_PAT_" + org)
-		if pat == "" {
-			log.Error().Str("org", org).Str("provider", provider).Msg("provider PAT for org doesn't exist. Skipping it")
-			continue
-
-		}
-		orgPats[org] = pat
+		orgnames = append(orgnames, org.Name)
 	}
-	return orgPats
+	return orgnames
 }
-
 func main() {
 	// setup logging
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -167,18 +157,22 @@ func main() {
 	}
 	check_gitleaks_conf(gitleaks_toml_path)
 	// Fetch the PATs for respective Provider
-	github_pats := getPats("GITHUB", conf.GithubConfig.OrgsToScan)
-	gitlab_pats := getPats("GITLAB", conf.GitlabConfig.OrgsToScan)
+	// github_pats := getPats("GITHUB", conf.GithubConfig.OrgsToScan)
+	// gitlab_pats := getPats("GITLAB", conf.GitlabConfig.OrgsToScan)
 	//Check for scanning single repository
 	repoURL := flag.String("repo", "", "Repository URL to scan")
 	outputFormat := flag.String("format", "", "Output Format")
 	flag.Parse()
 	//collate all the repos
 	all_repos := make(map[string]*GitRepo, 0)
-	for key, value := range get_all_github_repos(github_pats, conf) {
+	githubRepos, err := get_all_github_repos(conf.GithubConfig.OrgsToScan, conf)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to fetch GitHub repositories")
+	}
+	for key, value := range githubRepos {
 		all_repos[key] = value
 	}
-	gitlab_repos, nil := get_all_gitlab_repos(gitlab_pats, conf.GitlabConfig.DaysToScan, conf.SkipRepos)
+	gitlab_repos, nil := get_all_gitlab_repos(conf.GitlabConfig.OrgsToScan, conf)
 	for key, value := range gitlab_repos {
 		all_repos[key] = value
 	}
@@ -248,7 +242,8 @@ func main() {
 	if output_dir == "" {
 		output_dir = "/output"
 	}
-	all_orgs := append(conf.GithubConfig.OrgsToScan, conf.GitlabConfig.OrgsToScan...)
+
+	all_orgs := append(extractOrgnames(conf.GithubConfig.OrgsToScan), extractOrgnames(conf.GitlabConfig.OrgsToScan)...)
 	*outputFormat = strings.ToLower(*outputFormat)
 	if *outputFormat == "" {
 		*outputFormat = strings.ToLower(conf.Output.Format)

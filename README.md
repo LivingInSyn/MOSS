@@ -6,11 +6,11 @@ MOSS is the Multi-Organization Secret Scanner. It is designed to handle scanning
 ## Setting Access Tokens
 Organization access tokens (PATs) are passed as env vars.
 
-GitHub tokens will be in the form: `GITHUB_PAT_<orgname>`
+GitHub tokens will be in the form: `GITHUB_PAT_<orgname>_<CLOUD|ONPREM>`
 
-Gitlab tokens will be in the format `GITLAB_PAT_<orgname>`. 
+Gitlab tokens will be in the format `GITLAB_PAT_<orgname>_<CLOUD|ONPREM>`. 
 
-So if you're scanning a github org and the orgname is `foo` you would pass the PAT for the account running the scan as: `GITHUB_PAT_foo`. 
+So if you're scanning a github org and the orgname is `foo` you would pass the PAT for the account running the scan as: `GITHUB_PAT_foo_CLOUD` | `GITHUB_PAT_foo_ONPREM`. 
 
 MOSS looks for these PATs based on the organizations configured in the `github_config.orgs_to_scan` section of the config file documented below.
 
@@ -24,7 +24,7 @@ Care should be taken with max_concurrency. Larger values of max concurrency will
 Specific repositories in an organization can be scanned by adding a flag `repo` to the binary. repo in this case is the HTML URL of the repository. It can be done in the following way
 ```shell
 docker run --rm \
-    -e GITLAB_PAT_someorg=$(GL_TOKEN) \
+    -e GITLAB_PAT_someorg_CLOUD=$(GL_TOKEN) \
     -v `pwd`/configs/conf.yml:/usr/src/moss/configs/conf.yml \
     -v `pwd`/configs/gitleaks.toml:/usr/src/moss/configs/gitleaks.toml \
     -v `pwd`/sample_output:/output \
@@ -57,7 +57,7 @@ Docker is the preferred method for running MOSS. A sample run command would be:
 
 ```shell
 docker run --rm \
-    -e GITHUB_PAT_someorg=$(GH_TOKEN) \
+    -e GITHUB_PAT_someorg_CLOUD=$(GH_TOKEN) \
     -v `pwd`/configs/conf.yml:/usr/src/moss/configs/conf.yml \
     -v `pwd`/configs/gitleaks.toml:/usr/src/moss/configs/gitleaks.toml \
     -v `pwd`/sample_output:/output \

@@ -67,12 +67,17 @@ type Conf struct {
 	s_ignores []*regexp.Regexp
 }
 type ConfGithubConfig struct {
-	OrgsToScan []string `yaml:"orgs_to_scan"`
-	DaysToScan int      `yaml:"days_to_scan"`
+	OrgsToScan []OrgConfig `yaml:"orgs_to_scan"`
+	DaysToScan int         `yaml:"days_to_scan"`
 }
 type ConfGitlabConfig struct {
-	OrgsToScan []string `yaml:"orgs_to_scan"`
-	DaysToScan int      `yaml:"days_to_scan"`
+	OrgsToScan []OrgConfig `yaml:"orgs_to_scan"`
+	DaysToScan int         `yaml:"days_to_scan"`
+}
+type OrgConfig struct {
+	Name    string `yaml:"name"`
+	Type    string `yaml:"type"`               // "cloud" or "onprem"
+	BaseURL string `yaml:"base_url,omitempty"` // Optional for onprem
 }
 type GitLeaksConfig struct {
 	AdditionalArgs []string `yaml:"additional_args"`
