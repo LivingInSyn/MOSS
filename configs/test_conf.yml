@@ -1,6 +1,7 @@
 github_config:
   orgs_to_scan:
     # this is an array of orgs to scan
+    # 'name' usually refers to the GitLab organization identifier, but can be set independently for cross-platform consistency
     - name: LivingInSynTestOrg
       type: cloud
     - name: LivingInSynTestOrg2
@@ -11,6 +12,7 @@ github_config:
 
 gitlab_config:
   orgs_to_scan:
+    # 'name' usually refers to the GitLab organization identifier, but can be set independently for cross-platform consistency
     - name: testorg3
       type: onprem
       base_url: https://gitlab.<org_name>.com

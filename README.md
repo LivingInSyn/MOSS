@@ -6,11 +6,11 @@ MOSS is the Multi-Organization Secret Scanner. It is designed to handle scanning
 ## Setting Access Tokens
 Organization access tokens (PATs) are passed as env vars.
 
-GitHub tokens will be in the form: `GITHUB_PAT_<CLOUD|ONPREM>_<orgname>`
+GitHub tokens will be in the form: `GITHUB_PAT_<orgname>`
 
-Gitlab tokens will be in the format `GITLAB_PAT_<CLOUD|ONPREM>_<orgname>`. 
+Gitlab tokens will be in the format `GITLAB_PAT_<orgname>`. 
 
-So if you're scanning a github org and the orgname is `foo` you would pass the PAT for the account running the scan as: `GITHUB_PAT_CLOUD_foo` | `GITHUB_PAT_ONPREM_foo`. 
+So if you're scanning a github org and the orgname is `foo` you would pass the PAT for the account running the scan as: `GITHUB_PAT_foo`. 
 
 MOSS looks for these PATs based on the organizations configured in the `github_config.orgs_to_scan` section of the config file documented below.
 

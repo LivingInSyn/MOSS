@@ -46,3 +46,81 @@ func TestConfigParsing(t *testing.T) {
 		t.Errorf("got the wrong max concurrency")
 	}
 }
+func TestValidateUniqueOrgNames(t *testing.T) {
+	tests := []struct {
+		name      string
+		conf      Conf
+		expectErr bool
+	}{
+		{
+			name: "Valid configuration - no duplicates",
+			conf: Conf{
+				GithubConfig: ConfGithubConfig{
+					OrgsToScan: []OrgConfig{
+						{Name: "github-org1"},
+						{Name: "github-org2"},
+					},
+				},
+				GitlabConfig: ConfGitlabConfig{
+					OrgsToScan: []OrgConfig{
+						{Name: "gitlab-org1"},
+						{Name: "gitlab-org2"},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "Duplicate GitHub organization names",
+			conf: Conf{
+				GithubConfig: ConfGithubConfig{
+					OrgsToScan: []OrgConfig{
+						{Name: "duplicate-org"},
+						{Name: "duplicate-org"},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "Duplicate GitLab organization names",
+			conf: Conf{
+				GitlabConfig: ConfGitlabConfig{
+					OrgsToScan: []OrgConfig{
+						{Name: "duplicate-org"},
+						{Name: "duplicate-org"},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "Same name in both GitHub and GitLab is allowed",
+			conf: Conf{
+				GithubConfig: ConfGithubConfig{
+					OrgsToScan: []OrgConfig{
+						{Name: "same-name-org"},
+					},
+				},
+				GitlabConfig: ConfGitlabConfig{
+					OrgsToScan: []OrgConfig{
+						{Name: "same-name-org"},
+					},
+				},
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.conf.validateUniqueOrgNames()
+			if tc.expectErr && err == nil {
+				t.Errorf("Expected error but got none")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
+}

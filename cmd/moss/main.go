@@ -246,6 +246,7 @@ func main() {
 		output := json_output(final_results, all_orgs)
 		// todo: make this part of the conf
 		outpath := fmt.Sprintf("%s/output.json", output_dir)
+		log.Debug().Str("outpath", outpath).Msg("writing json output")
 		os.WriteFile(outpath, []byte(output), 0644)
 	} else if *outputFormat == "html" {
 		err := html_output(final_results, all_orgs, "")
@@ -255,6 +256,7 @@ func main() {
 	} else if *outputFormat == "markdown" {
 		mdown_out := markdown_output(final_results, all_orgs)
 		outpath := fmt.Sprintf("%s/output.md", output_dir)
+		log.Debug().Str("outpath", outpath).Msg("writing markdown output")
 		os.WriteFile(outpath, []byte(mdown_out), 0644)
 	}
 }

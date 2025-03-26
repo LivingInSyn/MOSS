@@ -13,14 +13,14 @@ import (
 )
 
 // Convert Github to common Git Repo Struct
-func github_to_git(project *github.Repository, pat string) *GitRepo {
+func github_to_git(project *github.Repository, pat string, org OrgConfig) *GitRepo {
 	return &GitRepo{
 		Name:     project.GetName(),
 		FullName: project.GetFullName(),
 		CloneURL: project.GetCloneURL(),
 		HTMLURL:  project.GetHTMLURL(),
 		Private:  project.GetPrivate(),
-		orgname:  project.GetOwner().GetLogin(),
+		orgname:  org.Name,
 		Archived: project.GetArchived(),
 		PushedAt: project.GetPushedAt().Time,
 		pat:      pat,
@@ -30,7 +30,7 @@ func github_to_git(project *github.Repository, pat string) *GitRepo {
 
 func getPat(provider string, org OrgConfig) string {
 	token := ""
-	token = os.Getenv(strings.ToUpper(provider) + "_PAT_" + strings.ToUpper(org.Type) + "_" + org.Name)
+	token = os.Getenv(strings.ToUpper(provider) + "_PAT_" + org.Name)
 	if token == "" {
 		log.Error().Str("org", org.Name).Msg("token missing for org")
 	}
@@ -75,7 +75,7 @@ func get_all_github_repos(orgs []OrgConfig, conf Conf) map[string]*GitRepo {
 		}
 
 		for _, repo := range repos {
-			all_repos[*repo.HTMLURL] = github_to_git(repo, pat)
+			all_repos[*repo.HTMLURL] = github_to_git(repo, pat, org)
 		}
 	}
 	return all_repos
