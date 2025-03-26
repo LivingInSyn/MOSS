@@ -30,13 +30,7 @@ func github_to_git(project *github.Repository, pat string) *GitRepo {
 
 func getPat(provider string, org OrgConfig) string {
 	token := ""
-	provider = strings.ToUpper(provider)
-	if org.Type == "cloud" {
-		token = os.Getenv(provider + "_PAT_CLOUD_" + org.Name)
-	}
-	if org.Type == "onprem" {
-		token = os.Getenv(provider + "_PAT_ONPREM_" + org.Name)
-	}
+	token = os.Getenv(strings.ToUpper(provider) + "_PAT_" + strings.ToUpper(org.Type) + "_" + org.Name)
 	if token == "" {
 		log.Error().Str("org", org.Name).Msg("token missing for org")
 	}
