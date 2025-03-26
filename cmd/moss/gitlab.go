@@ -47,7 +47,7 @@ func InitGitLabClient(org OrgConfig, token string) (*gitlab.Client, error) {
 	return gitlab.NewClient(token)
 }
 
-func get_all_gitlab_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, error) {
+func get_all_gitlab_repos(orgs []OrgConfig, conf Conf) map[string]*GitRepo {
 	gitlab_repos := make(map[string]*GitRepo)
 	time_ago := time.Now().AddDate(0, 0, (-1 * conf.GitlabConfig.DaysToScan))
 	for _, org := range orgs {
@@ -56,6 +56,7 @@ func get_all_gitlab_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, err
 			log.Error().Err(err).Str("org", org.Name).Msg("failed to connect to GitLab")
 			continue
 		}
+		log.Info().Str("org", org.Name).Str("type", org.Type).Msg("connected to GitLab")
 		const perPage = 100
 		var all_projects []*gitlab.Project
 		for page := 1; ; page++ {
@@ -73,7 +74,8 @@ func get_all_gitlab_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, err
 			projects, resp, err := git.Projects.ListProjects(opt)
 			all_projects = append(all_projects, projects...)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get GitLab projects for org %s: %w", org.Name, err)
+				log.Error().Err(err).Str("org", org.Name).Msg("failed to get GitLab projects")
+				break
 			}
 			if resp.CurrentPage >= resp.TotalPages {
 				break
@@ -85,5 +87,5 @@ func get_all_gitlab_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, err
 			}
 		}
 	}
-	return gitlab_repos, nil
+	return gitlab_repos
 }

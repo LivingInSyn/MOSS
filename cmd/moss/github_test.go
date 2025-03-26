@@ -16,14 +16,14 @@ func TestGetPat(t *testing.T) {
 	}
 
 	// Clear environment variables we'll be testing
-	os.Unsetenv("GITHUB_PAT_testorg_CLOUD")
-	os.Unsetenv("GITHUB_PAT_testorg_ONPREM")
-	os.Unsetenv("GITLAB_PAT_testorg_CLOUD")
+	os.Unsetenv("GITHUB_PAT_CLOUD_testorg")
+	os.Unsetenv("GITHUB_PAT_ONPREM_testorg")
+	os.Unsetenv("GITLAB_PAT_CLOUD_testorg")
 
 	// Set up test environment variables
-	os.Setenv("GITHUB_PAT_testorg_CLOUD", "github-cloud-token")
-	os.Setenv("GITHUB_PAT_testorg_ONPREM", "github-onprem-token")
-	os.Setenv("GITLAB_PAT_testorg_CLOUD", "gitlab-cloud-token")
+	os.Setenv("GITHUB_PAT_CLOUD_testorg", "github-cloud-token")
+	os.Setenv("GITHUB_PAT_ONPREM_testorg", "github-onprem-token")
+	os.Setenv("GITLAB_PAT_CLOUD_testorg", "gitlab-cloud-token")
 
 	// Define test cases
 	tests := []struct {

@@ -162,14 +162,11 @@ func main() {
 	flag.Parse()
 	//collate all the repos
 	all_repos := make(map[string]*GitRepo, 0)
-	githubRepos, err := get_all_github_repos(conf.GithubConfig.OrgsToScan, conf)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to fetch GitHub repositories")
-	}
+	githubRepos := get_all_github_repos(conf.GithubConfig.OrgsToScan, conf)
 	for key, value := range githubRepos {
 		all_repos[key] = value
 	}
-	gitlab_repos, nil := get_all_gitlab_repos(conf.GitlabConfig.OrgsToScan, conf)
+	gitlab_repos := get_all_gitlab_repos(conf.GitlabConfig.OrgsToScan, conf)
 	for key, value := range gitlab_repos {
 		all_repos[key] = value
 	}

@@ -32,10 +32,10 @@ func getPat(provider string, org OrgConfig) string {
 	token := ""
 	provider = strings.ToUpper(provider)
 	if org.Type == "cloud" {
-		token = os.Getenv(provider + "_PAT_" + org.Name + "_CLOUD")
+		token = os.Getenv(provider + "_PAT_CLOUD_" + org.Name)
 	}
 	if org.Type == "onprem" {
-		token = os.Getenv(provider + "_PAT_" + org.Name + "_ONPREM")
+		token = os.Getenv(provider + "_PAT_ONPREM_" + org.Name)
 	}
 	if token == "" {
 		log.Error().Str("org", org.Name).Msg("token missing for org")
@@ -62,7 +62,7 @@ func InitGitHubClient(org OrgConfig, token string) (*github.Client, error) {
 	return github.NewClient(tc), nil
 }
 
-func get_all_github_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, error) {
+func get_all_github_repos(orgs []OrgConfig, conf Conf) map[string]*GitRepo {
 	all_repos := make(map[string]*GitRepo, 0)
 
 	for _, org := range orgs {
@@ -72,7 +72,7 @@ func get_all_github_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, err
 			log.Printf("[GitHub:%s] client init error: %v", org.Name, err)
 			continue
 		}
-
+		log.Info().Str("org", org.Name).Str("type", org.Type).Msg("connected to GitHub")
 		repos, err := get_org_repos(org, client, conf.GithubConfig.DaysToScan, conf.SkipRepos)
 
 		if err != nil {
@@ -84,7 +84,7 @@ func get_all_github_repos(orgs []OrgConfig, conf Conf) (map[string]*GitRepo, err
 			all_repos[*repo.HTMLURL] = github_to_git(repo, pat)
 		}
 	}
-	return all_repos, nil
+	return all_repos
 }
 
 // Get github repos for the respective ORGs
