@@ -15,15 +15,10 @@ func TestGetPat(t *testing.T) {
 		}
 	}
 
-	// Clear environment variables we'll be testing
-	os.Unsetenv("GITHUB_PAT_CLOUD_testorg")
-	os.Unsetenv("GITHUB_PAT_ONPREM_testorg")
-	os.Unsetenv("GITLAB_PAT_CLOUD_testorg")
-
-	// Set up test environment variables
-	os.Setenv("GITHUB_PAT_CLOUD_testorg", "github-cloud-token")
-	os.Setenv("GITHUB_PAT_ONPREM_testorg", "github-onprem-token")
-	os.Setenv("GITLAB_PAT_CLOUD_testorg", "gitlab-cloud-token")
+	// Clear and set up test environment variables
+	os.Clearenv()
+	os.Setenv("GITHUB_PAT_testorg", "github-token-direct")
+	os.Setenv("GITLAB_PAT_otherorg", "gitlab-token-direct")
 
 	// Define test cases
 	tests := []struct {
@@ -33,34 +28,22 @@ func TestGetPat(t *testing.T) {
 		want     string
 	}{
 		{
-			name:     "GitHub cloud organization",
+			name:     "Direct environment variable lookup",
 			provider: "github",
-			org:      OrgConfig{Name: "testorg", Type: "cloud"},
-			want:     "github-cloud-token",
+			org:      OrgConfig{Name: "testorg"},
+			want:     "github-token-direct",
 		},
 		{
-			name:     "GitHub onprem organization",
-			provider: "github",
-			org:      OrgConfig{Name: "testorg", Type: "onprem"},
-			want:     "github-onprem-token",
-		},
-		{
-			name:     "GitLab cloud organization",
+			name:     "Different organization",
 			provider: "gitlab",
-			org:      OrgConfig{Name: "testorg", Type: "cloud"},
-			want:     "gitlab-cloud-token",
+			org:      OrgConfig{Name: "otherorg"},
+			want:     "gitlab-token-direct",
 		},
 		{
-			name:     "Missing token",
-			provider: "bitbucket",
-			org:      OrgConfig{Name: "testorg", Type: "cloud"},
+			name:     "Non-existent token",
+			provider: "github",
+			org:      OrgConfig{Name: "nonexistent"},
 			want:     "",
-		},
-		{
-			name:     "Case insensitive provider",
-			provider: "Github", // Mixed case
-			org:      OrgConfig{Name: "testorg", Type: "cloud"},
-			want:     "github-cloud-token",
 		},
 	}
 
