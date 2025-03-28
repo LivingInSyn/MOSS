@@ -24,7 +24,7 @@ Care should be taken with max_concurrency. Larger values of max concurrency will
 Specific repositories in an organization can be scanned by adding a flag `repo` to the binary. repo in this case is the HTML URL of the repository. It can be done in the following way
 ```shell
 docker run --rm \
-    -e GITLAB_PAT_CLOUD_someorg=$(GL_TOKEN) \
+    -e GITLAB_PAT_someorg=$(GL_TOKEN) \
     -v `pwd`/configs/conf.yml:/usr/src/moss/configs/conf.yml \
     -v `pwd`/configs/gitleaks.toml:/usr/src/moss/configs/gitleaks.toml \
     -v `pwd`/sample_output:/output \
@@ -57,7 +57,7 @@ Docker is the preferred method for running MOSS. A sample run command would be:
 
 ```shell
 docker run --rm \
-    -e GITHUB_PAT_CLOUD_someorg=$(GH_TOKEN) \
+    -e GITHUB_PAT_someorg=$(GH_TOKEN) \
     -v `pwd`/configs/conf.yml:/usr/src/moss/configs/conf.yml \
     -v `pwd`/configs/gitleaks.toml:/usr/src/moss/configs/gitleaks.toml \
     -v `pwd`/sample_output:/output \
