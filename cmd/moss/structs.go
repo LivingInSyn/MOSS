@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"time"
@@ -67,12 +68,17 @@ type Conf struct {
 	s_ignores []*regexp.Regexp
 }
 type ConfGithubConfig struct {
-	OrgsToScan []string `yaml:"orgs_to_scan"`
-	DaysToScan int      `yaml:"days_to_scan"`
+	OrgsToScan []OrgConfig `yaml:"orgs_to_scan"`
+	DaysToScan int         `yaml:"days_to_scan"`
 }
 type ConfGitlabConfig struct {
-	OrgsToScan []string `yaml:"orgs_to_scan"`
-	DaysToScan int      `yaml:"days_to_scan"`
+	OrgsToScan []OrgConfig `yaml:"orgs_to_scan"`
+	DaysToScan int         `yaml:"days_to_scan"`
+}
+type OrgConfig struct {
+	Name    string `yaml:"name"`
+	Type    string `yaml:"type"`               // "cloud" or "onprem"
+	BaseURL string `yaml:"base_url,omitempty"` // Optional for onprem
 }
 type GitLeaksConfig struct {
 	AdditionalArgs []string `yaml:"additional_args"`
@@ -99,11 +105,41 @@ func (c *Conf) getConfig(confPath string) (*Conf, error) {
 		log.Fatal().Err(err).Msg("failed to unmarshal config file")
 		return &Conf{}, err
 	}
+	// Validate organization names are unique
+	if err := c.validateUniqueOrgNames(); err != nil {
+		log.Fatal().Err(err).Msg("organization validation failed")
+		return &Conf{}, err
+	}
 	// build the regex map
 	c.buildIgnoreMap()
 	c.buildSecretIgnores()
 	return c, nil
 }
+
+func (c *Conf) validateUniqueOrgNames() error {
+	// Separate maps for GitHub and GitLab organizations
+	githubOrgNames := make(map[string]bool)
+	gitlabOrgNames := make(map[string]bool)
+
+	// Check GitLab org names
+	for _, org := range c.GitlabConfig.OrgsToScan {
+		if _, exists := gitlabOrgNames[org.Name]; exists {
+			return fmt.Errorf("duplicate GitLab organization name found: %s", org.Name)
+		}
+		gitlabOrgNames[org.Name] = true
+	}
+
+	// Check GitHub org names
+	for _, org := range c.GithubConfig.OrgsToScan {
+		if _, exists := githubOrgNames[org.Name]; exists {
+			return fmt.Errorf("duplicate GitHub organization name found: %s", org.Name)
+		}
+		githubOrgNames[org.Name] = true
+	}
+
+	return nil
+}
+
 func (c *Conf) buildIgnoreMap() {
 	r_ignore_map := make(map[string][]*regexp.Regexp)
 	for ri, expressions := range c.ReposToIgnore {

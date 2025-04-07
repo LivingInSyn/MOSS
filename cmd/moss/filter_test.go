@@ -4,7 +4,7 @@ import "testing"
 
 func getConf() Conf {
 	ghc := ConfGithubConfig{
-		OrgsToScan: []string{"org"},
+		OrgsToScan: []OrgConfig{{Name: "org", Type: "cloud"}},
 		DaysToScan: 3,
 	}
 	c := Conf{
