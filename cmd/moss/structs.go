@@ -105,6 +105,8 @@ func (c *Conf) getConfig(confPath string) (*Conf, error) {
 		log.Fatal().Err(err).Msg("failed to unmarshal config file")
 		return &Conf{}, err
 	}
+	// Set default organization types
+	c.setDefaultOrgTypes()
 	// Validate organization names are unique
 	if err := c.validateUniqueOrgNames(); err != nil {
 		log.Fatal().Err(err).Msg("organization validation failed")
@@ -167,4 +169,18 @@ func (c *Conf) buildSecretIgnores() {
 		ignore_patterns = append(ignore_patterns, re)
 	}
 	c.s_ignores = ignore_patterns
+}
+
+func (c *Conf) setDefaultOrgTypes() {
+	// Set default organization type to "cloud" for GitHub and GitLab if not specified
+	for i, org := range c.GithubConfig.OrgsToScan {
+		if org.Type == "" {
+			c.GithubConfig.OrgsToScan[i].Type = "cloud"
+		}
+	}
+	for i, org := range c.GitlabConfig.OrgsToScan {
+		if org.Type == "" {
+			c.GitlabConfig.OrgsToScan[i].Type = "cloud"
+		}
+	}
 }

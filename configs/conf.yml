@@ -4,6 +4,7 @@ github_config:
     # 'name' usually refers to the GitLab organization identifier, but can be set independently for cross-platform consistency
     - name: LivingInSynTestOrg
       type: cloud
+    - name: LivingInSynTestOrg2
   # if set to > 1 it will scan repos pushed to in the last `n` days, 
   # if set to <= 0, it will scan all repos, might be a lot of repos!
   days_to_scan: 30
@@ -16,6 +17,7 @@ gitlab_config:
       base_url: https://gitlab.test-org.com
     - name: testOrg2
       type: cloud
+    - name: testOrg3
     # this is an array of gitlab orgs to scan
   days_to_scan: 20
 
