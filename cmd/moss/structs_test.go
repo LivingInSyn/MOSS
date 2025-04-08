@@ -17,7 +17,7 @@ func TestConfigParsing(t *testing.T) {
 	var conf Conf
 	conf.getConfig(confpath)
 	// make sure it parsed correctly
-	if len(conf.GithubConfig.OrgsToScan) != 2 {
+	if len(conf.GithubConfig.OrgsToScan) != 3 {
 		t.Errorf("orgs to scan didn't load correctly. Got a len of: %d", len(conf.GithubConfig.OrgsToScan))
 	}
 	if conf.GithubConfig.DaysToScan != 30 {

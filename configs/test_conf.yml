@@ -6,6 +6,7 @@ github_config:
       type: cloud
     - name: LivingInSynTestOrg2
       type: onprem
+    - name: LivingInSynTestOrg3
   # if set to > 1 it will scan repos pushed to in the last `n` days, 
   # if set to <= 0, it will scan all repos, might be a lot of repos!
   days_to_scan: 30
@@ -18,6 +19,7 @@ gitlab_config:
       base_url: https://gitlab.<org_name>.com
     - name: testorg4
       type: cloud
+    - name: testorg5
     # this is an array of gitlab orgs to scan
   days_to_scan: 20
 
