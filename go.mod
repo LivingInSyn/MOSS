@@ -1,6 +1,6 @@
 module github.com/livinginsyn/MOSS
 
-go 1.24.2
+go 1.24
 
 require (
 	github.com/google/go-github/v47 v47.1.0
