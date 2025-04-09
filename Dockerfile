@@ -1,5 +1,5 @@
 # Build moss in a builder
-FROM golang:1.19 as builder
+FROM golang:1.24 as builder
 
 WORKDIR /usr/src/moss
 
